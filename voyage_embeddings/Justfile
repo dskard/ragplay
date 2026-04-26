@@ -1,0 +1,8 @@
+setup:
+    uv sync
+
+run-print-embeddings:
+    uv run python voyageai_print_embeddings.py
+
+run-quick-start:
+    uv run python voyageai_embeddings_quick_start.py
