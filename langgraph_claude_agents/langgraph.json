@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./src/langgraph_claude_agents/graph.py:graph"
+  },
+  "env": ".env"
+}
