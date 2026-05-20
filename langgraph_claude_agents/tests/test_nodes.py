@@ -22,6 +22,12 @@ def test_node_exists_and_is_async(name):
     assert inspect.iscoroutinefunction(fn), f"{name} must be async"
 
 
+_NODE_MOCK_RESPONSES = {
+    "setup": json.dumps({"issue_title": "t", "issue_body": "b"}),
+    "plan_behaviors": json.dumps([]),
+}
+
+
 @pytest.mark.parametrize("name", NODE_NAMES)
 async def test_node_returns_partial_state(name):
     fn = getattr(nodes, name)
@@ -35,8 +41,8 @@ async def test_node_returns_partial_state(name):
         "error": "",
         "status": "running",
     }
-    valid_response = json.dumps({"issue_title": "t", "issue_body": "b"})
-    with patch("langgraph_claude_agents.nodes.run_agent", new=AsyncMock(return_value=valid_response)):
+    mock_response = _NODE_MOCK_RESPONSES.get(name, "{}")
+    with patch("langgraph_claude_agents.nodes.run_agent", new=AsyncMock(return_value=mock_response)):
         result = await fn(state)
     assert isinstance(result, dict)
 
