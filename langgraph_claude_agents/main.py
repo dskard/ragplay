@@ -9,7 +9,11 @@ from langgraph_claude_agents.graph import build_graph
 @click.option("--restart", is_flag=True, default=False, help="Restart from scratch, ignoring checkpoints")
 @click.option("--db", default="checkpoints.sqlite", show_default=True, help="Path to the checkpoint database")
 def cli(issue: int, restart: bool, db: str) -> None:
-    graph = build_graph(db=db, restart=restart)
+    try:
+        graph = build_graph(db=db, restart=restart)
+    except NotImplementedError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
     initial_state = {
         "issue_number": issue,
         "issue_title": "",

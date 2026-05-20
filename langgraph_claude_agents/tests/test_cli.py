@@ -53,6 +53,14 @@ def test_cli_exits_nonzero_when_graph_returns_error():
     assert result.exit_code == 1
 
 
+def test_cli_exits_nonzero_when_build_graph_raises_not_implemented():
+    runner = CliRunner()
+    with patch("main.build_graph", side_effect=NotImplementedError("not ready")):
+        result = runner.invoke(cli, ["--issue", "1", "--restart"])
+    assert result.exit_code == 1
+    assert "not ready" in result.output
+
+
 def test_cli_passes_db_and_restart_to_build_graph():
     runner = CliRunner()
     with patch("main.build_graph", return_value=_make_mock_graph()) as mock_build:
