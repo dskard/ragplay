@@ -79,7 +79,7 @@ def _extract_acceptance_criteria(issue_body: str) -> list[str]:
 
 async def plan_behaviors(state: IssueState) -> dict:
     prompt = _PLAN_BEHAVIORS_PROMPT_PREFIX + state["issue_body"]
-    raw = await run_agent(prompt=prompt, allowed_tools=["Bash"])
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash"], model=state.get("model"))
     try:
         behaviors = _extract_json(raw)
         if not isinstance(behaviors, list):

@@ -582,6 +582,19 @@ def test_make_state_includes_model_field():
     assert isinstance(state["model"], str)
 
 
+async def test_plan_behaviors_passes_model_from_state_to_run_agent():
+    behaviors = ["behavior one"]
+    state = make_state(issue_body="body", model="claude-haiku-4-5")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=json.dumps(behaviors)),
+    ) as mock_run:
+        await nodes.plan_behaviors(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-haiku-4-5"
+
+
 async def test_setup_passes_model_from_state_to_run_agent():
     agent_output = json.dumps({"issue_title": "T", "issue_body": "B"})
     state = make_state(model="claude-opus-4-7")
