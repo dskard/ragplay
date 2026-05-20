@@ -1,8 +1,9 @@
-"""Demonstrate the direct LLM invocation pattern.
+"""Demonstrate the direct LLM invocation pattern with a PromptTemplate.
 
-This script is a runnable example, not the CLI entrypoint. It shows how to call
-``invoke_llm`` to send a single prompt straight to the Claude Agent SDK without
-allowing any tools and without going through the LangGraph workflow.
+This script is a runnable example, not the CLI entrypoint. It shows how to
+build a prompt from a ``PromptTemplate`` and then send the formatted prompt to
+the Claude Agent SDK via ``invoke_llm`` without allowing any tools and without
+going through the LangGraph workflow.
 
 The CLI for implementing GitHub issues lives in ``langgraph_claude_agents.cli``
 and is exposed as the ``langgraph-claude-agents`` console script.
@@ -11,13 +12,15 @@ and is exposed as the ``langgraph-claude-agents`` console script.
 import asyncio
 
 from langgraph_claude_agents.agent import invoke_llm
+from langgraph_claude_agents.prompt_template import PromptTemplate
 
 
-DEMO_PROMPT = "Say hello in one short sentence."
+GREETING_TEMPLATE = PromptTemplate("Say hello to {name} in one short sentence.")
 
 
 async def main() -> None:
-    response = await invoke_llm(DEMO_PROMPT)
+    prompt = GREETING_TEMPLATE.format(name="world")
+    response = await invoke_llm(prompt)
     print(response)
 
 
