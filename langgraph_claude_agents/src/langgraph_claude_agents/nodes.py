@@ -157,7 +157,7 @@ async def verify_ac(state: IssueState) -> dict:
         return {}
     criteria_list = "\n".join(f"- {c}" for c in ac)
     prompt = _VERIFY_AC_PROMPT_PREFIX + criteria_list + _VERIFY_AC_PROMPT_SUFFIX
-    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read"])
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read"], model=state.get("model"))
     try:
         data = _extract_json(raw)
     except json.JSONDecodeError:

@@ -582,6 +582,20 @@ def test_make_state_includes_model_field():
     assert isinstance(state["model"], str)
 
 
+async def test_verify_ac_passes_model_from_state_to_run_agent():
+    ac = ["criterion one"]
+    state = make_state(acceptance_criteria=ac, model="claude-sonnet-4-6")
+    agent_response = json.dumps({"all_covered": True, "uncovered": []})
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=agent_response),
+    ) as mock_run:
+        await nodes.verify_ac(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-sonnet-4-6"
+
+
 async def test_tdd_behavior_passes_model_from_state_to_run_agent():
     behaviors = ["implement feature X"]
     state = make_state(behaviors=behaviors, current_behavior_index=0, model="claude-opus-4-7")
