@@ -307,6 +307,19 @@ async def test_verify_ac_sets_error_on_non_json_agent_response():
     assert result["error"]
 
 
+async def test_verify_ac_sets_error_on_unexpected_json_type():
+    ac = ["some criterion"]
+    state = make_state(acceptance_criteria=ac)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="[]"),
+    ):
+        result = await nodes.verify_ac(state)
+
+    assert "error" in result
+    assert result["error"]
+
+
 async def test_verify_ac_deduplicates_uncovered_already_in_behaviors():
     ac = ["criterion one"]
     existing_behaviors = ["behavior A", "criterion one"]

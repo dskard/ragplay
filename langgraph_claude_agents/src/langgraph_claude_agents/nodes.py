@@ -138,6 +138,8 @@ async def verify_ac(state: IssueState) -> dict:
         data = json.loads(raw)
     except json.JSONDecodeError:
         return {"error": f"verify_ac agent returned non-JSON: {raw!r}"}
+    if not isinstance(data, dict):
+        return {"error": f"verify_ac agent returned unexpected JSON type: {raw!r}"}
     if data.get("all_covered"):
         return {}
     uncovered = data.get("uncovered", [])
