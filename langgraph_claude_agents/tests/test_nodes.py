@@ -304,6 +304,23 @@ async def test_verify_ac_succeeds_when_agent_response_has_preamble():
     assert result == {}
 
 
+async def test_tdd_behavior_uses_last_json_when_preamble_contains_valid_json():
+    behaviors = ["implement feature X"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0)
+    # Preamble contains a complete valid JSON object; the real response follows
+    response_with_json_preamble = (
+        'Tool returned {"ok": true}, now here is the result: {"status": "success"}'
+    )
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=response_with_json_preamble),
+    ):
+        result = await nodes.tdd_behavior(state)
+
+    assert result.get("current_behavior_index") == 1
+    assert "error" not in result
+
+
 async def test_tdd_behavior_sets_error_on_unexpected_json_type():
     behaviors = ["implement feature X"]
     state = make_state(behaviors=behaviors, current_behavior_index=0)

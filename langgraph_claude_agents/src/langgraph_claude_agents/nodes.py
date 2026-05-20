@@ -8,16 +8,25 @@ from langgraph_claude_agents.state import IssueState
 
 
 def _extract_json(text: str) -> Any:
-    """Extract and parse the first JSON object or array from text that may contain surrounding content."""
+    """Extract and parse the last JSON object or array from text that may contain surrounding content."""
     decoder = json.JSONDecoder()
-    for i, ch in enumerate(text):
-        if ch in ('{', '['):
+    last_value = None
+    found = False
+    i = 0
+    while i < len(text):
+        if text[i] in ('{', '['):
             try:
-                value, _ = decoder.raw_decode(text, i)
-                return value
-            except json.JSONDecodeError:
+                value, end = decoder.raw_decode(text, i)
+                last_value = value
+                found = True
+                i = end
                 continue
-    raise json.JSONDecodeError("No JSON object or array found", text, 0)
+            except json.JSONDecodeError:
+                pass
+        i += 1
+    if not found:
+        raise json.JSONDecodeError("No JSON object or array found", text, 0)
+    return last_value
 
 _SETUP_PROMPT_TEMPLATE = """
 Check that `gh` and `roborev` are available in PATH.
