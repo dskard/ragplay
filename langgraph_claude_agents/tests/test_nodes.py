@@ -116,3 +116,25 @@ async def test_plan_behaviors_happy_path():
     assert result["behaviors"] == behaviors
     assert result["current_behavior_index"] == 0
     assert result["acceptance_criteria"] == ["tool is available", "output is parsed"]
+
+
+async def test_plan_behaviors_sets_error_on_invalid_json():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="not json"),
+    ):
+        result = await nodes.plan_behaviors(make_state())
+
+    assert "error" in result
+    assert result["error"]
+
+
+async def test_plan_behaviors_sets_error_when_agent_returns_object_not_array():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value='{"key": "value"}'),
+    ):
+        result = await nodes.plan_behaviors(make_state())
+
+    assert "error" in result
+    assert result["error"]
