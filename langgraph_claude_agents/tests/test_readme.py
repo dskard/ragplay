@@ -22,3 +22,30 @@ def test_readme_has_quick_start_or_usage_section():
     assert "Quick Start" in h2s or "Usage" in h2s, (
         f"Expected a 'Quick Start' or 'Usage' level-2 section in README.md; found {h2s}"
     )
+
+
+def _section_body(lines: list[str], section_names: tuple[str, ...]) -> str:
+    body: list[str] = []
+    in_section = False
+    for line in lines:
+        if line.startswith("## "):
+            heading = line[3:].strip()
+            if heading in section_names:
+                in_section = True
+                continue
+            if in_section:
+                break
+        if in_section:
+            body.append(line)
+    return "\n".join(body)
+
+
+def test_quick_start_or_usage_includes_cli_invocation():
+    readme = Path(__file__).resolve().parent.parent / "README.md"
+    lines = readme.read_text().splitlines()
+    body = _section_body(lines, ("Quick Start", "Usage"))
+    expected = "uv run python3 main.py --issue <issue-number>"
+    assert expected in body, (
+        f"Expected Quick Start/Usage section to include CLI invocation "
+        f"'{expected}'; section body was:\n{body}"
+    )
