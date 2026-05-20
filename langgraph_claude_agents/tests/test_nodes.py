@@ -92,3 +92,27 @@ async def test_setup_sets_error_on_malformed_agent_output():
 
     assert "error" in result
     assert result["error"]
+
+
+_ISSUE_BODY_WITH_AC = """
+## Acceptance Criteria
+
+- [ ] tool is available
+- [ ] output is parsed
+"""
+
+
+async def test_plan_behaviors_happy_path():
+    behaviors = ["check tool available", "parse output"]
+    agent_output = json.dumps(behaviors)
+    state = make_state(issue_body=_ISSUE_BODY_WITH_AC)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=agent_output),
+    ) as mock_run:
+        result = await nodes.plan_behaviors(state)
+
+    mock_run.assert_called_once()
+    assert result["behaviors"] == behaviors
+    assert result["current_behavior_index"] == 0
+    assert result["acceptance_criteria"] == ["tool is available", "output is parsed"]
