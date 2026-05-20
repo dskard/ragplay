@@ -44,7 +44,7 @@ def test_quick_start_or_usage_includes_cli_invocation():
     readme = Path(__file__).resolve().parent.parent / "README.md"
     lines = readme.read_text().splitlines()
     body = _section_body(lines, ("Quick Start", "Usage"))
-    expected = "uv run python3 main.py --issue <issue-number>"
+    expected = "uv run langgraph-claude-agents --issue <issue-number>"
     assert expected in body, (
         f"Expected Quick Start/Usage section to include CLI invocation "
         f"'{expected}'; section body was:\n{body}"

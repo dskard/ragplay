@@ -9,5 +9,5 @@ See `CONTEXT.md` for the domain language and architecture overview.
 Run via the CLI:
 
 ```bash
-uv run python3 main.py --issue <issue-number>
+uv run langgraph-claude-agents --issue <issue-number>
 ```
