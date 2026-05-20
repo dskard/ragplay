@@ -141,9 +141,13 @@ async def verify_ac(state: IssueState) -> dict:
     if not uncovered:
         return {}
     existing = state.get("behaviors", [])
+    existing_set = set(existing)
+    new_items = [u for u in uncovered if u not in existing_set]
+    if not new_items:
+        return {}
     new_index = len(existing)
     return {
-        "behaviors": existing + uncovered,
+        "behaviors": existing + new_items,
         "current_behavior_index": new_index,
     }
 
