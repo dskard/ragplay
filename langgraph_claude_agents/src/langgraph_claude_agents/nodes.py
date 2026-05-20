@@ -10,7 +10,7 @@ async def plan_behaviors(state: IssueState) -> dict:
 
 
 async def tdd_behavior(state: IssueState) -> dict:
-    return {}
+    return {"current_behavior_index": state.get("current_behavior_index", 0) + 1}
 
 
 async def verify_ac(state: IssueState) -> dict:
