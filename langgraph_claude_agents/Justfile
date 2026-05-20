@@ -2,4 +2,4 @@ setup:
     uv sync
 
 run issue:
-    uv run python3 main.py --issue {{issue}}
+    uv run langgraph-claude-agents --issue {{issue}}
