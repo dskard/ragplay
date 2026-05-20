@@ -29,6 +29,19 @@ async def test_run_agent_returns_final_text():
     assert result == "the answer"
 
 
+async def test_invoke_llm_returns_response_text():
+    messages = [make_result_message("direct response")]
+
+    async def fake_query(**kwargs):
+        for msg in messages:
+            yield msg
+
+    with patch("langgraph_claude_agents.agent.query", new=fake_query):
+        result = await agent.invoke_llm("ping")
+
+    assert result == "direct response"
+
+
 async def test_run_agent_propagates_iterator_exceptions():
     async def fake_query(**kwargs):
         raise RuntimeError("sdk failure")
