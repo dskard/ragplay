@@ -212,3 +212,78 @@ async def test_tdd_behavior_sets_error_on_non_json_agent_response():
     assert "error" in result
     assert "non-JSON" in result["error"]
     assert "current_behavior_index" not in result
+
+
+async def test_verify_ac_skips_run_agent_when_no_acceptance_criteria():
+    state = make_state(acceptance_criteria=[], behaviors=["b1"], current_behavior_index=1)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(),
+    ) as mock_run:
+        result = await nodes.verify_ac(state)
+
+    mock_run.assert_not_called()
+    assert isinstance(result, dict)
+    assert "error" not in result or not result["error"]
+
+
+async def test_verify_ac_calls_run_agent_with_bash_and_read_when_ac_exist():
+    ac = ["tool is available", "output is parsed"]
+    state = make_state(acceptance_criteria=ac)
+    agent_response = json.dumps({"all_covered": True, "uncovered": []})
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=agent_response),
+    ) as mock_run:
+        await nodes.verify_ac(state)
+
+    mock_run.assert_called_once()
+    called_tools = set(mock_run.call_args.kwargs.get("allowed_tools", []))
+    assert "Bash" in called_tools
+    assert "Read" in called_tools
+
+
+async def test_verify_ac_returns_empty_dict_when_all_covered():
+    ac = ["tool is available"]
+    state = make_state(acceptance_criteria=ac)
+    agent_response = json.dumps({"all_covered": True, "uncovered": []})
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=agent_response),
+    ):
+        result = await nodes.verify_ac(state)
+
+    assert result == {} or (not result.get("error") and "behaviors" not in result)
+
+
+async def test_verify_ac_appends_uncovered_to_behaviors_and_updates_index():
+    ac = ["criterion one", "criterion two"]
+    existing_behaviors = ["behavior A", "behavior B"]
+    state = make_state(
+        acceptance_criteria=ac,
+        behaviors=existing_behaviors,
+        current_behavior_index=2,
+    )
+    uncovered = ["criterion two"]
+    agent_response = json.dumps({"all_covered": False, "uncovered": uncovered})
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=agent_response),
+    ):
+        result = await nodes.verify_ac(state)
+
+    assert result["behaviors"] == existing_behaviors + uncovered
+    assert result["current_behavior_index"] == len(existing_behaviors)
+
+
+async def test_verify_ac_sets_error_on_non_json_agent_response():
+    ac = ["some criterion"]
+    state = make_state(acceptance_criteria=ac)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="not valid json"),
+    ):
+        result = await nodes.verify_ac(state)
+
+    assert "error" in result
+    assert result["error"]
