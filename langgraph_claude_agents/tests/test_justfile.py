@@ -71,6 +71,28 @@ def test_just_run_dry_run_forwards_issue_argument():
     )
 
 
+def test_justfile_default_recipe_lists_setup_and_run_for_bootstrap():
+    # Behavior: the Justfile bootstraps the project. Running `just` with no
+    # arguments must surface the `setup` and `run` targets so a new
+    # contributor can discover how to get started.
+    if shutil.which("just") is None:
+        pytest.skip("`just` is not installed")
+    result = subprocess.run(
+        ["just"],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    output = result.stdout + result.stderr
+    assert "setup" in output, (
+        f"Expected default `just` invocation to list `setup`; got:\n{output}"
+    )
+    assert "run" in output, (
+        f"Expected default `just` invocation to list `run`; got:\n{output}"
+    )
+
+
 def test_justfile_run_target_uses_console_script():
     # main.py has been removed in favour of the langgraph-claude-agents console
     # script (see test_config.test_main_py_does_not_exist). The `run` recipe
