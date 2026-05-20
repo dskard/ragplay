@@ -58,6 +58,7 @@ def make_state(**overrides):
         "acceptance_criteria": [],
         "error": "",
         "status": "running",
+        "model": "claude-sonnet-4-6",
     }
     base.update(overrides)
     return base
@@ -573,3 +574,9 @@ async def test_teardown_returns_done_status_when_no_error():
     state = make_state(error="")
     result = await nodes.teardown(state)
     assert result == {"status": "done"}
+
+
+def test_make_state_includes_model_field():
+    state = make_state()
+    assert "model" in state
+    assert isinstance(state["model"], str)
