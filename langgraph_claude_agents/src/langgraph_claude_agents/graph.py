@@ -22,6 +22,16 @@ def _route_tdd_or_error(state: IssueState) -> str:
     return "verify_ac"
 
 
+def _route_verify_ac(state: IssueState) -> str:
+    if state.get("error"):
+        return "teardown"
+    behaviors = state.get("behaviors", [])
+    idx = state.get("current_behavior_index", 0)
+    if idx < len(behaviors):
+        return "tdd_behavior"
+    return "full_test"
+
+
 def build_graph(db: str = "checkpoints.sqlite", restart: bool = False) -> CompiledStateGraph:
     if db != "checkpoints.sqlite" or restart:
         raise NotImplementedError("Checkpoint persistence is not yet implemented")
@@ -54,8 +64,8 @@ def build_graph(db: str = "checkpoints.sqlite", restart: bool = False) -> Compil
     )
     graph.add_conditional_edges(
         "verify_ac",
-        _route_or_error("full_test"),
-        ["full_test", "teardown"],
+        _route_verify_ac,
+        ["tdd_behavior", "full_test", "teardown"],
     )
     graph.add_conditional_edges(
         "full_test",

@@ -8,6 +8,7 @@ def _setup_ok(issue_number=1, title="Test Issue", body=""):
     return json.dumps({"issue_title": title, "issue_body": body})
 
 
+
 def test_graph_compiles():
     graph = build_graph()
     assert graph is not None
@@ -109,3 +110,61 @@ def test_build_graph_raises_for_custom_db():
 def test_build_graph_raises_for_restart():
     with pytest.raises(NotImplementedError):
         build_graph(restart=True)
+
+
+async def test_verify_ac_all_covered_routes_to_full_test():
+    graph = build_graph()
+    ac = ["criterion one"]
+    behaviors_json = json.dumps(["behavior one"])
+    verify_ac_response = json.dumps({"all_covered": True, "uncovered": []})
+    state = {
+        "issue_number": 1,
+        "issue_title": "",
+        "issue_body": "## Acceptance Criteria\n\n- [ ] criterion one\n",
+        "behaviors": [],
+        "current_behavior_index": 0,
+        "acceptance_criteria": [],
+        "error": "",
+        "status": "running",
+    }
+    tdd_ok = json.dumps({"status": "success"})
+    mock = AsyncMock(side_effect=[_setup_ok(body="## Acceptance Criteria\n\n- [ ] criterion one\n"), behaviors_json, tdd_ok, verify_ac_response])
+    with patch("langgraph_claude_agents.nodes.run_agent", new=mock):
+        result = await graph.ainvoke(state)
+    assert result["status"] == "done"
+    assert not result["error"]
+
+
+async def test_verify_ac_uncovered_loops_back_to_tdd_behavior():
+    graph = build_graph()
+    behaviors_json = json.dumps(["behavior one"])
+    verify_ac_uncovered = json.dumps({"all_covered": False, "uncovered": ["criterion two"]})
+    verify_ac_all_covered = json.dumps({"all_covered": True, "uncovered": []})
+    state = {
+        "issue_number": 1,
+        "issue_title": "",
+        "issue_body": "## Acceptance Criteria\n\n- [ ] criterion two\n",
+        "behaviors": [],
+        "current_behavior_index": 0,
+        "acceptance_criteria": [],
+        "error": "",
+        "status": "running",
+    }
+    tdd_ok = json.dumps({"status": "success"})
+    side_effects = [
+        _setup_ok(body="## Acceptance Criteria\n\n- [ ] criterion two\n"),
+        behaviors_json,
+        tdd_ok,
+        verify_ac_uncovered,
+        tdd_ok,
+        verify_ac_all_covered,
+    ]
+    mock = AsyncMock(side_effect=side_effects)
+    with patch("langgraph_claude_agents.nodes.run_agent", new=mock):
+        result = await graph.ainvoke(state)
+    assert result["status"] == "done"
+    assert not result["error"]
+    assert mock.call_count == len(side_effects), (
+        f"expected {len(side_effects)} run_agent calls (loop-back to tdd_behavior), "
+        f"got {mock.call_count}"
+    )
