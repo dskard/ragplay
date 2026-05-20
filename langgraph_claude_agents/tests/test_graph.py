@@ -1,5 +1,11 @@
+import json
+from unittest.mock import AsyncMock, patch
 import pytest
 from langgraph_claude_agents.graph import build_graph
+
+
+def _setup_ok(issue_number=1, title="Test Issue", body=""):
+    return json.dumps({"issue_title": title, "issue_body": body})
 
 
 def test_graph_compiles():
@@ -27,7 +33,8 @@ async def test_happy_path_no_behaviors_routes_to_done():
         "error": "",
         "status": "running",
     }
-    result = await graph.ainvoke(state)
+    with patch("langgraph_claude_agents.nodes.run_agent", new=AsyncMock(return_value=_setup_ok())):
+        result = await graph.ainvoke(state)
     assert result["status"] == "done"
     assert result["error"] == ""
 
@@ -41,10 +48,12 @@ async def test_error_in_setup_routes_to_teardown():
         "behaviors": [],
         "current_behavior_index": 0,
         "acceptance_criteria": [],
-        "error": "something failed",
+        "error": "",
         "status": "running",
     }
-    result = await graph.ainvoke(state)
+    error_output = json.dumps({"error": "something failed"})
+    with patch("langgraph_claude_agents.nodes.run_agent", new=AsyncMock(return_value=error_output)):
+        result = await graph.ainvoke(state)
     assert result["status"] == "done"
     assert result["error"] == "something failed"
 
@@ -61,7 +70,8 @@ async def test_happy_path_with_behaviors_loops_tdd_until_exhausted():
         "error": "",
         "status": "running",
     }
-    result = await graph.ainvoke(state)
+    with patch("langgraph_claude_agents.nodes.run_agent", new=AsyncMock(return_value=_setup_ok())):
+        result = await graph.ainvoke(state)
     assert result["status"] == "done"
     assert result["error"] == ""
     assert result["current_behavior_index"] == 2
