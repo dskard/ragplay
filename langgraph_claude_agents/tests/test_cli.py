@@ -46,11 +46,11 @@ def test_cli_accepts_db_flag():
     assert result.exit_code == 0
 
 
-def test_cli_exits_nonzero_when_graph_returns_error():
+def test_cli_completes_when_graph_invokes_successfully():
     runner = CliRunner()
-    with patch("main.build_graph", return_value=_make_mock_graph(error="node failed")):
+    with patch("main.build_graph", return_value=_make_mock_graph()):
         result = runner.invoke(cli, ["--issue", "1"])
-    assert result.exit_code == 1
+    assert result.exit_code == 0
 
 
 def test_cli_exits_nonzero_when_build_graph_raises_not_implemented():

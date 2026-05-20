@@ -218,6 +218,20 @@ async def test_tdd_behavior_sets_error_on_non_json_agent_response():
     assert "current_behavior_index" not in result
 
 
+async def test_tdd_behavior_sets_error_on_unexpected_json_type():
+    behaviors = ["implement feature X"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="[]"),
+    ):
+        result = await nodes.tdd_behavior(state)
+
+    assert "error" in result
+    assert result["error"]
+    assert "current_behavior_index" not in result
+
+
 async def test_verify_ac_skips_run_agent_when_no_acceptance_criteria():
     state = make_state(acceptance_criteria=[], behaviors=["b1"], current_behavior_index=1)
     with patch(
@@ -434,9 +448,9 @@ async def test_teardown_exits_with_status_0_when_no_error():
     assert exc_info.value.code == 0
 
 
-async def test_teardown_prints_error_to_stdout(capsys):
+async def test_teardown_prints_error_to_stderr(capsys):
     state = make_state(error="something went wrong")
     with pytest.raises(SystemExit):
         await nodes.teardown(state)
     captured = capsys.readouterr()
-    assert "something went wrong" in captured.out
+    assert "something went wrong" in captured.err

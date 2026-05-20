@@ -104,6 +104,8 @@ async def tdd_behavior(state: IssueState) -> dict:
         data = json.loads(raw)
     except json.JSONDecodeError:
         return {"error": f"tdd_behavior agent returned non-JSON: {raw!r}"}
+    if not isinstance(data, dict):
+        return {"error": f"tdd_behavior agent returned unexpected JSON type: {raw!r}"}
     if "error" in data and data["error"]:
         return {"error": data["error"]}
     return {"current_behavior_index": idx + 1}
@@ -212,6 +214,6 @@ async def branch_review(state: IssueState) -> dict:
 async def teardown(state: IssueState) -> dict:
     error = state.get("error", "")
     if error:
-        print(error)
+        print(error, file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
