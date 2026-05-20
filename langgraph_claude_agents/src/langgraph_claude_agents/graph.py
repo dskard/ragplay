@@ -1,4 +1,5 @@
 from langgraph.graph import StateGraph, START, END
+from langgraph.graph.state import CompiledStateGraph
 from langgraph_claude_agents.state import IssueState
 from langgraph_claude_agents import nodes
 
@@ -21,7 +22,7 @@ def _route_tdd_or_error(state: IssueState) -> str:
     return "verify_ac"
 
 
-def build_graph() -> StateGraph:
+def build_graph() -> CompiledStateGraph:
     graph = StateGraph(IssueState)
 
     graph.add_node("setup", nodes.setup)
@@ -59,11 +60,7 @@ def build_graph() -> StateGraph:
         _route_or_error("branch_review"),
         ["branch_review", "teardown"],
     )
-    graph.add_conditional_edges(
-        "branch_review",
-        _route_or_error("teardown"),
-        ["teardown"],
-    )
+    graph.add_edge("branch_review", "teardown")
     graph.add_edge("teardown", END)
 
     return graph.compile()

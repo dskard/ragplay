@@ -15,12 +15,21 @@ def test_graph_has_all_seven_nodes():
     assert expected.issubset(node_names)
 
 
-def test_happy_path_edges_route_correctly():
+async def test_happy_path_routes_setup_to_plan_behaviors():
     graph = build_graph()
-    # Verify the graph has edges by checking it compiled without error
-    # and contains the expected node structure
-    assert "setup" in graph.nodes
-    assert "teardown" in graph.nodes
+    state = {
+        "issue_number": 1,
+        "issue_title": "",
+        "issue_body": "",
+        "behaviors": [],
+        "current_behavior_index": 0,
+        "acceptance_criteria": [],
+        "error": "",
+        "status": "running",
+    }
+    result = await graph.ainvoke(state)
+    assert result["status"] == "done"
+    assert not result.get("error")
 
 
 async def test_error_in_setup_routes_to_teardown():
