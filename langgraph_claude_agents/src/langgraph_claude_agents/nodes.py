@@ -31,13 +31,12 @@ async def setup(state: IssueState) -> dict:
         return {"error": f"setup agent response missing key: {exc}"}
 
 
-_PLAN_BEHAVIORS_PROMPT_TEMPLATE = """
+_PLAN_BEHAVIORS_PROMPT_PREFIX = """
 Given this GitHub issue body, return a JSON array of behavior strings for a TDD loop.
 Order behaviors by dependency (foundational behaviors first).
 Return ONLY the JSON array, nothing else.
 
 Issue body:
-{issue_body}
 """
 
 _AC_PATTERN = re.compile(
@@ -54,7 +53,7 @@ def _extract_acceptance_criteria(issue_body: str) -> list[str]:
 
 
 async def plan_behaviors(state: IssueState) -> dict:
-    prompt = _PLAN_BEHAVIORS_PROMPT_TEMPLATE.format(issue_body=state["issue_body"])
+    prompt = _PLAN_BEHAVIORS_PROMPT_PREFIX + state["issue_body"]
     raw = await run_agent(prompt=prompt, allowed_tools=["Bash"])
     try:
         behaviors = json.loads(raw)
