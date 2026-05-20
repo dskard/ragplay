@@ -1,10 +1,11 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from click.testing import CliRunner
 from main import cli
 
 
 def _make_mock_graph(error: str = ""):
     mock_graph = AsyncMock()
+    mock_graph.checkpointer = MagicMock()
     mock_graph.ainvoke.return_value = {
         "issue_number": 1,
         "issue_title": "",
@@ -27,52 +28,46 @@ def test_cli_requires_issue_flag():
 
 def test_cli_accepts_issue_flag():
     runner = CliRunner()
-    with patch("main.build_graph", return_value=_make_mock_graph()):
+    with patch("main.build_graph", new=AsyncMock(return_value=_make_mock_graph())):
         result = runner.invoke(cli, ["--issue", "1"])
     assert result.exit_code == 0
 
 
 def test_cli_accepts_restart_flag():
     runner = CliRunner()
-    with patch("main.build_graph", return_value=_make_mock_graph()):
+    with patch("main.build_graph", new=AsyncMock(return_value=_make_mock_graph())):
         result = runner.invoke(cli, ["--issue", "1", "--restart"])
     assert result.exit_code == 0
 
 
 def test_cli_accepts_db_flag():
     runner = CliRunner()
-    with patch("main.build_graph", return_value=_make_mock_graph()):
+    with patch("main.build_graph", new=AsyncMock(return_value=_make_mock_graph())):
         result = runner.invoke(cli, ["--issue", "1", "--db", "mydb.sqlite"])
     assert result.exit_code == 0
 
 
 def test_cli_completes_when_graph_invokes_successfully():
     runner = CliRunner()
-    with patch("main.build_graph", return_value=_make_mock_graph()):
+    with patch("main.build_graph", new=AsyncMock(return_value=_make_mock_graph())):
         result = runner.invoke(cli, ["--issue", "1"])
     assert result.exit_code == 0
 
 
-def test_cli_exits_nonzero_when_build_graph_raises_not_implemented():
+def test_cli_passes_db_to_build_graph():
     runner = CliRunner()
-    with patch("main.build_graph", side_effect=NotImplementedError("not ready")):
-        result = runner.invoke(cli, ["--issue", "1", "--restart"])
-    assert result.exit_code == 1
-    assert "not ready" in result.output
-
-
-def test_cli_passes_db_and_restart_to_build_graph():
-    runner = CliRunner()
-    with patch("main.build_graph", return_value=_make_mock_graph()) as mock_build:
-        runner.invoke(cli, ["--issue", "1", "--restart", "--db", "custom.sqlite"])
-    mock_build.assert_called_once_with(db="custom.sqlite", restart=True)
+    mock_build = AsyncMock(return_value=_make_mock_graph())
+    with patch("main.build_graph", new=mock_build):
+        runner.invoke(cli, ["--issue", "1", "--db", "custom.sqlite"])
+    mock_build.assert_called_once_with(db="custom.sqlite")
 
 
 def test_cli_exits_nonzero_when_graph_raises_exception():
     runner = CliRunner()
     mock_graph = AsyncMock()
+    mock_graph.checkpointer = MagicMock()
     mock_graph.ainvoke.side_effect = RuntimeError("sdk failure")
-    with patch("main.build_graph", return_value=mock_graph):
+    with patch("main.build_graph", new=AsyncMock(return_value=mock_graph)):
         result = runner.invoke(cli, ["--issue", "1"])
     assert result.exit_code == 1
     assert "sdk failure" in result.output

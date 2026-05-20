@@ -1,5 +1,8 @@
+import aiosqlite
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph_claude_agents.state import IssueState
 from langgraph_claude_agents import nodes
 
@@ -32,47 +35,55 @@ def _route_verify_ac(state: IssueState) -> str:
     return "full_test"
 
 
-def build_graph(db: str = "checkpoints.sqlite", restart: bool = False) -> CompiledStateGraph:
-    if db != "checkpoints.sqlite" or restart:
-        raise NotImplementedError("Checkpoint persistence is not yet implemented")
-    graph = StateGraph(IssueState)
+def _make_graph(checkpointer) -> CompiledStateGraph:
+    g = StateGraph(IssueState)
 
-    graph.add_node("setup", nodes.setup)
-    graph.add_node("plan_behaviors", nodes.plan_behaviors)
-    graph.add_node("tdd_behavior", nodes.tdd_behavior)
-    graph.add_node("verify_ac", nodes.verify_ac)
-    graph.add_node("full_test", nodes.full_test)
-    graph.add_node("branch_review", nodes.branch_review)
-    graph.add_node("teardown", nodes.teardown)
+    g.add_node("setup", nodes.setup)
+    g.add_node("plan_behaviors", nodes.plan_behaviors)
+    g.add_node("tdd_behavior", nodes.tdd_behavior)
+    g.add_node("verify_ac", nodes.verify_ac)
+    g.add_node("full_test", nodes.full_test)
+    g.add_node("branch_review", nodes.branch_review)
+    g.add_node("teardown", nodes.teardown)
 
-    graph.add_edge(START, "setup")
+    g.add_edge(START, "setup")
 
-    graph.add_conditional_edges(
+    g.add_conditional_edges(
         "setup",
         _route_or_error("plan_behaviors"),
         ["plan_behaviors", "teardown"],
     )
-    graph.add_conditional_edges(
+    g.add_conditional_edges(
         "plan_behaviors",
         _route_tdd_or_error,
         ["tdd_behavior", "verify_ac", "teardown"],
     )
-    graph.add_conditional_edges(
+    g.add_conditional_edges(
         "tdd_behavior",
         _route_tdd_or_error,
         ["tdd_behavior", "verify_ac", "teardown"],
     )
-    graph.add_conditional_edges(
+    g.add_conditional_edges(
         "verify_ac",
         _route_verify_ac,
         ["tdd_behavior", "full_test", "teardown"],
     )
-    graph.add_conditional_edges(
+    g.add_conditional_edges(
         "full_test",
         _route_or_error("branch_review"),
         ["branch_review", "teardown"],
     )
-    graph.add_edge("branch_review", "teardown")
-    graph.add_edge("teardown", END)
+    g.add_edge("branch_review", "teardown")
+    g.add_edge("teardown", END)
 
-    return graph.compile()
+    return g.compile(checkpointer=checkpointer)
+
+
+async def build_graph(db: str = ".langgraph_checkpoints.db") -> CompiledStateGraph:
+    conn = aiosqlite.connect(db)
+    checkpointer = AsyncSqliteSaver(conn)
+    await checkpointer.setup()
+    return _make_graph(checkpointer)
+
+
+graph = _make_graph(MemorySaver())

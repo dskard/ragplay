@@ -10,10 +10,12 @@ dependencies = [
     "claude-agent-sdk>=0.2.82",
     "click>=8.4.0",
     "langgraph>=1.2.0",
+    "langgraph-checkpoint-sqlite>=3.1.0",
 ]
 
 [dependency-groups]
 dev = [
+    "langgraph-cli[inmem]>=0.4.26",
     "pre-commit>=4.6.0",
     "pytest>=9.0.3",
     "pytest-asyncio>=0.26.0",
