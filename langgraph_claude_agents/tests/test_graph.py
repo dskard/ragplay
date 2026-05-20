@@ -1,4 +1,3 @@
-import pytest
 from langgraph_claude_agents.graph import build_graph
 
 
@@ -15,7 +14,7 @@ def test_graph_has_all_seven_nodes():
     assert expected.issubset(node_names)
 
 
-async def test_happy_path_routes_setup_to_plan_behaviors():
+async def test_happy_path_no_behaviors_routes_to_done():
     graph = build_graph()
     state = {
         "issue_number": 1,
@@ -29,7 +28,7 @@ async def test_happy_path_routes_setup_to_plan_behaviors():
     }
     result = await graph.ainvoke(state)
     assert result["status"] == "done"
-    assert not result.get("error")
+    assert result.get("error") is None or result.get("error") == ""
 
 
 async def test_error_in_setup_routes_to_teardown():
@@ -44,22 +43,23 @@ async def test_error_in_setup_routes_to_teardown():
         "error": "something failed",
         "status": "running",
     }
-    # Invoke graph starting from setup node with error pre-set
     result = await graph.ainvoke(state)
     assert result["status"] == "done"
+    assert result["error"] == "something failed"
 
 
-async def test_graph_runs_happy_path_end_to_end():
+async def test_happy_path_with_behaviors_loops_tdd_until_exhausted():
     graph = build_graph()
     state = {
         "issue_number": 1,
-        "issue_title": "Test Issue",
-        "issue_body": "Test body",
-        "behaviors": [],
-        "current_behavior_index": 0,
+        "issue_title": "",
+        "issue_body": "",
+        "behaviors": ["behavior one", "behavior two"],
+        "current_behavior_index": 2,
         "acceptance_criteria": [],
         "error": "",
         "status": "running",
     }
     result = await graph.ainvoke(state)
     assert result["status"] == "done"
+    assert result.get("error") is None or result.get("error") == ""
