@@ -360,3 +360,46 @@ async def test_full_test_sets_error_on_unexpected_json_type():
 
     assert "error" in result
     assert result["error"]
+
+
+async def test_branch_review_calls_run_agent_with_correct_tools():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value='{"status": "success"}'),
+    ) as mock_run:
+        await nodes.branch_review(make_state())
+
+    mock_run.assert_called_once()
+    called_tools = set(mock_run.call_args.kwargs.get("allowed_tools", []))
+    assert called_tools == {"Bash", "Read", "Write", "Edit"}
+
+
+async def test_branch_review_returns_empty_dict_on_success():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value='{"status": "success"}'),
+    ):
+        result = await nodes.branch_review(make_state())
+
+    assert result == {}
+
+
+async def test_branch_review_sets_error_when_review_fails():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value='{"error": "review could not be completed"}'),
+    ):
+        result = await nodes.branch_review(make_state())
+
+    assert result.get("error") == "review could not be completed"
+
+
+async def test_branch_review_sets_error_on_non_json_agent_response():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="not valid json"),
+    ):
+        result = await nodes.branch_review(make_state())
+
+    assert "error" in result
+    assert result["error"]

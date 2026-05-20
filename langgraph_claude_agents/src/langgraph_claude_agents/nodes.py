@@ -181,7 +181,30 @@ async def full_test(state: IssueState) -> dict:
     return {}
 
 
+_BRANCH_REVIEW_PROMPT = """
+Run a roborev branch review using `roborev review-branch` and fix any
+findings until the review passes.
+
+Return ONLY a JSON object:
+- {"status": "success"} when the review passes with no actionable findings
+- {"error": "<description>"} if the review cannot be completed or findings
+  cannot be resolved
+"""
+
+
 async def branch_review(state: IssueState) -> dict:
+    raw = await run_agent(
+        prompt=_BRANCH_REVIEW_PROMPT,
+        allowed_tools=["Bash", "Read", "Write", "Edit"],
+    )
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"error": f"branch_review agent returned non-JSON: {raw!r}"}
+    if not isinstance(data, dict):
+        return {"error": f"branch_review agent returned unexpected JSON type: {raw!r}"}
+    if "error" in data and data["error"]:
+        return {"error": data["error"]}
     return {}
 
 
