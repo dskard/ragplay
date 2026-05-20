@@ -403,3 +403,14 @@ async def test_branch_review_sets_error_on_non_json_agent_response():
 
     assert "error" in result
     assert result["error"]
+
+
+async def test_branch_review_sets_error_on_unexpected_json_type():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="[]"),
+    ):
+        result = await nodes.branch_review(make_state())
+
+    assert "error" in result
+    assert result["error"]
