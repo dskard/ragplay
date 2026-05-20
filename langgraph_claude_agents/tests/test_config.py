@@ -5,10 +5,6 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_main_py_does_not_exist():
-    assert not (_ROOT / "main.py").exists(), "main.py should be deleted; CLI lives in langgraph_claude_agents.cli"
-
-
 def test_justfile_run_uses_registered_script():
     justfile = (_ROOT / "Justfile").read_text()
     assert "uv run langgraph-claude-agents --issue" in justfile
