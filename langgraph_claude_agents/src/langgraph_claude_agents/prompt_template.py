@@ -13,6 +13,9 @@ class PromptTemplate(Runnable):
         return self.template.format(**kwargs)
 
     async def ainvoke(self, input: Any) -> str:
-        if isinstance(input, dict):
-            return self.format(**input)
-        return self.format(input=input)
+        if not isinstance(input, dict):
+            raise TypeError(
+                "PromptTemplate.ainvoke expects a dict of template variables; "
+                f"got {type(input).__name__}"
+            )
+        return self.format(**input)
