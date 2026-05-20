@@ -580,3 +580,16 @@ def test_make_state_includes_model_field():
     state = make_state()
     assert "model" in state
     assert isinstance(state["model"], str)
+
+
+async def test_setup_passes_model_from_state_to_run_agent():
+    agent_output = json.dumps({"issue_title": "T", "issue_body": "B"})
+    state = make_state(model="claude-opus-4-7")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=agent_output),
+    ) as mock_run:
+        await nodes.setup(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-opus-4-7"

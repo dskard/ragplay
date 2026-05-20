@@ -37,7 +37,7 @@ If `gh` or `roborev` are not available, return a JSON object with key "error" de
 
 async def setup(state: IssueState) -> dict:
     prompt = _SETUP_PROMPT_TEMPLATE.format(issue_number=state["issue_number"])
-    raw = await run_agent(prompt=prompt, allowed_tools=["Bash"])
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash"], model=state.get("model"))
     try:
         data = _extract_json(raw)
     except json.JSONDecodeError:
