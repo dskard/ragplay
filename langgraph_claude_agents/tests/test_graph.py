@@ -34,7 +34,7 @@ async def test_happy_path_no_behaviors_routes_to_done():
         "error": "",
         "status": "running",
     }
-    mock = AsyncMock(side_effect=[_setup_ok(), "[]"])
+    mock = AsyncMock(side_effect=[_setup_ok(), "[]", '{"status": "success"}'])
     with patch("langgraph_claude_agents.nodes.run_agent", new=mock):
         result = await graph.ainvoke(state)
     assert result["status"] == "done"
@@ -94,7 +94,8 @@ async def test_happy_path_with_behaviors_loops_tdd_until_exhausted():
         "status": "running",
     }
     tdd_ok = json.dumps({"status": "success"})
-    mock = AsyncMock(side_effect=[_setup_ok(), behaviors_json, tdd_ok, tdd_ok])
+    full_test_ok = json.dumps({"status": "success"})
+    mock = AsyncMock(side_effect=[_setup_ok(), behaviors_json, tdd_ok, tdd_ok, full_test_ok])
     with patch("langgraph_claude_agents.nodes.run_agent", new=mock):
         result = await graph.ainvoke(state)
     assert result["status"] == "done"
@@ -128,7 +129,8 @@ async def test_verify_ac_all_covered_routes_to_full_test():
         "status": "running",
     }
     tdd_ok = json.dumps({"status": "success"})
-    mock = AsyncMock(side_effect=[_setup_ok(body="## Acceptance Criteria\n\n- [ ] criterion one\n"), behaviors_json, tdd_ok, verify_ac_response])
+    full_test_ok = json.dumps({"status": "success"})
+    mock = AsyncMock(side_effect=[_setup_ok(body="## Acceptance Criteria\n\n- [ ] criterion one\n"), behaviors_json, tdd_ok, verify_ac_response, full_test_ok])
     with patch("langgraph_claude_agents.nodes.run_agent", new=mock):
         result = await graph.ainvoke(state)
     assert result["status"] == "done"
@@ -151,6 +153,7 @@ async def test_verify_ac_uncovered_loops_back_to_tdd_behavior():
         "status": "running",
     }
     tdd_ok = json.dumps({"status": "success"})
+    full_test_ok = json.dumps({"status": "success"})
     side_effects = [
         _setup_ok(body="## Acceptance Criteria\n\n- [ ] criterion two\n"),
         behaviors_json,
@@ -158,6 +161,7 @@ async def test_verify_ac_uncovered_loops_back_to_tdd_behavior():
         verify_ac_uncovered,
         tdd_ok,
         verify_ac_all_covered,
+        full_test_ok,
     ]
     mock = AsyncMock(side_effect=side_effects)
     with patch("langgraph_claude_agents.nodes.run_agent", new=mock):

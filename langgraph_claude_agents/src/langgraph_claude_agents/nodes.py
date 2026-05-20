@@ -152,7 +152,30 @@ async def verify_ac(state: IssueState) -> dict:
     }
 
 
+_FULL_TEST_PROMPT = """
+Detect the test runner by checking these files in order:
+1. CLAUDE.md - look for a test command hint
+2. Justfile - look for a test recipe
+3. Makefile - look for a test target
+4. pyproject.toml (run: uv run pytest)
+5. package.json (run: npm test)
+
+Run the full test suite.
+
+Return ONLY a JSON object:
+- {"status": "success"} when all tests pass
+- {"error": "<description>"} if any tests fail
+"""
+
+
 async def full_test(state: IssueState) -> dict:
+    raw = await run_agent(prompt=_FULL_TEST_PROMPT, allowed_tools=["Bash", "Read"])
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"error": f"full_test agent returned non-JSON: {raw!r}"}
+    if "error" in data and data["error"]:
+        return {"error": data["error"]}
     return {}
 
 
