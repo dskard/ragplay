@@ -1,6 +1,6 @@
 from unittest.mock import patch
 import pytest
-from claude_agent_sdk.types import ResultMessage, AssistantMessage, TextBlock
+from claude_agent_sdk.types import ResultMessage
 from langgraph_claude_agents import agent
 
 
