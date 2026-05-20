@@ -1,4 +1,5 @@
-import aiosqlite
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.checkpoint.memory import MemorySaver
@@ -79,11 +80,12 @@ def _make_graph(checkpointer) -> CompiledStateGraph:
     return g.compile(checkpointer=checkpointer)
 
 
-async def build_graph(db: str = ".langgraph_checkpoints.db") -> CompiledStateGraph:
-    conn = await aiosqlite.connect(db)
-    checkpointer = AsyncSqliteSaver(conn)
-    await checkpointer.setup()
-    return _make_graph(checkpointer)
+@asynccontextmanager
+async def build_graph(
+    db: str = ".langgraph_checkpoints.db",
+) -> AsyncIterator[CompiledStateGraph]:
+    async with AsyncSqliteSaver.from_conn_string(db) as checkpointer:
+        yield _make_graph(checkpointer)
 
 
 graph = _make_graph(MemorySaver())

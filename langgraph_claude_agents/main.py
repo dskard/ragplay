@@ -10,25 +10,22 @@ from langgraph_claude_agents.graph import build_graph
 @click.option("--db", default=".langgraph_checkpoints.db", show_default=True, help="Path to the checkpoint database")
 def cli(issue: int, restart: bool, db: str) -> None:
     async def _run() -> None:
-        graph = await build_graph(db=db)
-        thread_id = f"issue-{issue}"
-        if restart:
-            await graph.checkpointer.adelete_thread(thread_id)
-        initial_state = {
-            "issue_number": issue,
-            "issue_title": "",
-            "issue_body": "",
-            "behaviors": [],
-            "current_behavior_index": 0,
-            "acceptance_criteria": [],
-            "error": "",
-            "status": "running",
-        }
-        config = {"configurable": {"thread_id": thread_id}}
-        try:
+        async with build_graph(db=db) as graph:
+            thread_id = f"issue-{issue}"
+            if restart:
+                await graph.checkpointer.adelete_thread(thread_id)
+            initial_state = {
+                "issue_number": issue,
+                "issue_title": "",
+                "issue_body": "",
+                "behaviors": [],
+                "current_behavior_index": 0,
+                "acceptance_criteria": [],
+                "error": "",
+                "status": "running",
+            }
+            config = {"configurable": {"thread_id": thread_id}}
             await graph.ainvoke(initial_state, config=config)
-        finally:
-            await graph.checkpointer.conn.close()
 
     try:
         asyncio.run(_run())
