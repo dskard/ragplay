@@ -198,3 +198,17 @@ async def test_tdd_behavior_sets_error_when_index_out_of_bounds():
     mock_run.assert_not_called()
     assert "error" in result
     assert result["error"]
+
+
+async def test_tdd_behavior_sets_error_on_non_json_agent_response():
+    behaviors = ["implement feature X"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="not valid json"),
+    ):
+        result = await nodes.tdd_behavior(state)
+
+    assert "error" in result
+    assert "non-JSON" in result["error"]
+    assert "current_behavior_index" not in result

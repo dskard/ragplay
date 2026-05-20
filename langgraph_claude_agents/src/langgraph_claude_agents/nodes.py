@@ -102,7 +102,7 @@ async def tdd_behavior(state: IssueState) -> dict:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        return {"current_behavior_index": idx + 1}
+        return {"error": f"tdd_behavior agent returned non-JSON: {raw!r}"}
     if "error" in data and data["error"]:
         return {"error": data["error"]}
     return {"current_behavior_index": idx + 1}
