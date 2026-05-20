@@ -23,6 +23,8 @@ def _route_tdd_or_error(state: IssueState) -> str:
 
 
 def build_graph(db: str = "checkpoints.sqlite", restart: bool = False) -> CompiledStateGraph:
+    if db != "checkpoints.sqlite" or restart:
+        raise NotImplementedError("Checkpoint persistence is not yet implemented")
     graph = StateGraph(IssueState)
 
     graph.add_node("setup", nodes.setup)
