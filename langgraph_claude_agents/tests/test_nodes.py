@@ -44,12 +44,8 @@ async def test_node_returns_partial_state(name):
     }
     mock_response = _NODE_MOCK_RESPONSES.get(name, "{}")
     with patch("langgraph_claude_agents.nodes.run_agent", new=AsyncMock(return_value=mock_response)):
-        if name == "teardown":
-            with pytest.raises(SystemExit):
-                await fn(state)
-        else:
-            result = await fn(state)
-            assert isinstance(result, dict)
+        result = await fn(state)
+        assert isinstance(result, dict)
 
 
 def make_state(**overrides):
@@ -567,23 +563,13 @@ async def test_branch_review_sets_error_on_unexpected_json_type():
     assert result["error"]
 
 
-async def test_teardown_exits_with_status_1_when_error_set():
+async def test_teardown_returns_error_status_when_error_set():
     state = make_state(error="something went wrong")
-    with pytest.raises(SystemExit) as exc_info:
-        await nodes.teardown(state)
-    assert exc_info.value.code == 1
+    result = await nodes.teardown(state)
+    assert result == {"status": "error"}
 
 
-async def test_teardown_exits_with_status_0_when_no_error():
+async def test_teardown_returns_done_status_when_no_error():
     state = make_state(error="")
-    with pytest.raises(SystemExit) as exc_info:
-        await nodes.teardown(state)
-    assert exc_info.value.code == 0
-
-
-async def test_teardown_prints_error_to_stderr(capsys):
-    state = make_state(error="something went wrong")
-    with pytest.raises(SystemExit):
-        await nodes.teardown(state)
-    captured = capsys.readouterr()
-    assert "something went wrong" in captured.err
+    result = await nodes.teardown(state)
+    assert result == {"status": "done"}

@@ -25,7 +25,11 @@ def cli(issue: int, restart: bool, db: str) -> None:
                 "status": "running",
             }
             config = {"configurable": {"thread_id": thread_id}}
-            await graph.ainvoke(initial_state, config=config)
+            result = await graph.ainvoke(initial_state, config=config)
+            error = result.get("error", "")
+            if error:
+                click.echo(error, err=True)
+                sys.exit(1)
 
     try:
         asyncio.run(_run())

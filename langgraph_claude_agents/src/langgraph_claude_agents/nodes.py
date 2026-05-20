@@ -1,6 +1,5 @@
 import json
 import re
-import sys
 from typing import Any
 
 from langgraph_claude_agents.agent import run_agent
@@ -241,6 +240,5 @@ async def branch_review(state: IssueState) -> dict:
 async def teardown(state: IssueState) -> dict:
     error = state.get("error", "")
     if error:
-        print(error, file=sys.stderr)
-        sys.exit(1)
-    sys.exit(0)
+        return {"status": "error"}
+    return {"status": "done"}

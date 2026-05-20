@@ -87,3 +87,12 @@ def test_cli_exits_nonzero_when_graph_raises_exception():
         result = runner.invoke(cli, ["--issue", "1"])
     assert result.exit_code == 1
     assert "sdk failure" in result.output
+
+
+def test_cli_exits_nonzero_when_graph_returns_error_in_state():
+    runner = CliRunner()
+    mock_graph = _make_mock_graph(error="tdd step failed unrecoverably")
+    with patch("main.build_graph", _mock_build(mock_graph)):
+        result = runner.invoke(cli, ["--issue", "1"])
+    assert result.exit_code == 1
+    assert "tdd step failed unrecoverably" in result.output
