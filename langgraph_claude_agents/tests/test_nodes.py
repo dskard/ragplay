@@ -253,7 +253,7 @@ async def test_verify_ac_returns_empty_dict_when_all_covered():
     ):
         result = await nodes.verify_ac(state)
 
-    assert result == {} or (not result.get("error") and "behaviors" not in result)
+    assert result == {}
 
 
 async def test_verify_ac_appends_uncovered_to_behaviors_and_updates_index():
