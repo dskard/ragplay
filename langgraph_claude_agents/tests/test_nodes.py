@@ -35,7 +35,8 @@ async def test_node_returns_partial_state(name):
         "error": "",
         "status": "running",
     }
-    with patch("langgraph_claude_agents.nodes.run_agent", new=AsyncMock(return_value="{}")):
+    valid_response = json.dumps({"issue_title": "t", "issue_body": "b"})
+    with patch("langgraph_claude_agents.nodes.run_agent", new=AsyncMock(return_value=valid_response)):
         result = await fn(state)
     assert isinstance(result, dict)
 
@@ -64,8 +65,7 @@ async def test_setup_happy_path_updates_state():
         result = await nodes.setup(make_state())
 
     mock_run.assert_called_once()
-    _, kwargs = mock_run.call_args
-    assert kwargs.get("allowed_tools") == ["Bash"] or mock_run.call_args.args[1] == ["Bash"]
+    assert mock_run.call_args.kwargs.get("allowed_tools") == ["Bash"]
     assert result["issue_title"] == "My Issue"
     assert result["issue_body"] == "Body text"
     assert result["status"] == "setup_done"
