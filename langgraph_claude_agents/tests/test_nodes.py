@@ -349,3 +349,14 @@ async def test_full_test_sets_error_on_non_json_agent_response():
 
     assert "error" in result
     assert result["error"]
+
+
+async def test_full_test_sets_error_on_unexpected_json_type():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="[]"),
+    ):
+        result = await nodes.full_test(make_state())
+
+    assert "error" in result
+    assert result["error"]

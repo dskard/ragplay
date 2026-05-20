@@ -174,6 +174,8 @@ async def full_test(state: IssueState) -> dict:
         data = json.loads(raw)
     except json.JSONDecodeError:
         return {"error": f"full_test agent returned non-JSON: {raw!r}"}
+    if not isinstance(data, dict):
+        return {"error": f"full_test agent returned unexpected JSON type: {raw!r}"}
     if "error" in data and data["error"]:
         return {"error": data["error"]}
     return {}
