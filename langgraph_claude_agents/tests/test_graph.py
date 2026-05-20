@@ -1,3 +1,4 @@
+import pytest
 from langgraph_claude_agents.graph import build_graph
 
 
@@ -64,3 +65,13 @@ async def test_happy_path_with_behaviors_loops_tdd_until_exhausted():
     assert result["status"] == "done"
     assert result["error"] == ""
     assert result["current_behavior_index"] == 2
+
+
+def test_build_graph_raises_for_custom_db():
+    with pytest.raises(NotImplementedError):
+        build_graph(db="other.sqlite")
+
+
+def test_build_graph_raises_for_restart():
+    with pytest.raises(NotImplementedError):
+        build_graph(restart=True)
