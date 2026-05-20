@@ -321,6 +321,23 @@ async def test_tdd_behavior_uses_last_json_when_preamble_contains_valid_json():
     assert "error" not in result
 
 
+def test_extract_json_returns_last_json_object_not_first():
+    result = nodes._extract_json(
+        'Tool returned {"ok": true}, result: {"status": "success"}'
+    )
+    assert result == {"status": "success"}
+
+
+def test_extract_json_returns_single_json_object():
+    result = nodes._extract_json('some preamble\n{"key": "value"}')
+    assert result == {"key": "value"}
+
+
+def test_extract_json_raises_when_no_json_present():
+    with pytest.raises(json.JSONDecodeError):
+        nodes._extract_json("no json here at all")
+
+
 async def test_tdd_behavior_sets_error_on_unexpected_json_type():
     behaviors = ["implement feature X"]
     state = make_state(behaviors=behaviors, current_behavior_index=0)
