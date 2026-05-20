@@ -6,6 +6,8 @@ from main import cli
 def _make_mock_graph(error: str = ""):
     mock_graph = AsyncMock()
     mock_graph.checkpointer = MagicMock()
+    mock_graph.checkpointer.adelete_thread = AsyncMock()
+    mock_graph.checkpointer.conn.close = AsyncMock()
     mock_graph.ainvoke.return_value = {
         "issue_number": 1,
         "issue_title": "",
@@ -35,9 +37,11 @@ def test_cli_accepts_issue_flag():
 
 def test_cli_accepts_restart_flag():
     runner = CliRunner()
-    with patch("main.build_graph", new=AsyncMock(return_value=_make_mock_graph())):
+    mock_graph = _make_mock_graph()
+    with patch("main.build_graph", new=AsyncMock(return_value=mock_graph)):
         result = runner.invoke(cli, ["--issue", "1", "--restart"])
     assert result.exit_code == 0
+    mock_graph.checkpointer.adelete_thread.assert_called_once_with("issue-1")
 
 
 def test_cli_accepts_db_flag():
@@ -64,8 +68,7 @@ def test_cli_passes_db_to_build_graph():
 
 def test_cli_exits_nonzero_when_graph_raises_exception():
     runner = CliRunner()
-    mock_graph = AsyncMock()
-    mock_graph.checkpointer = MagicMock()
+    mock_graph = _make_mock_graph()
     mock_graph.ainvoke.side_effect = RuntimeError("sdk failure")
     with patch("main.build_graph", new=AsyncMock(return_value=mock_graph)):
         result = runner.invoke(cli, ["--issue", "1"])

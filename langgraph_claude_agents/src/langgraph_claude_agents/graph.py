@@ -80,7 +80,7 @@ def _make_graph(checkpointer) -> CompiledStateGraph:
 
 
 async def build_graph(db: str = ".langgraph_checkpoints.db") -> CompiledStateGraph:
-    conn = aiosqlite.connect(db)
+    conn = await aiosqlite.connect(db)
     checkpointer = AsyncSqliteSaver(conn)
     await checkpointer.setup()
     return _make_graph(checkpointer)

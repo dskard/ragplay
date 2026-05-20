@@ -13,7 +13,7 @@ def cli(issue: int, restart: bool, db: str) -> None:
         graph = await build_graph(db=db)
         thread_id = f"issue-{issue}"
         if restart:
-            graph.checkpointer.delete_thread(thread_id)
+            await graph.checkpointer.adelete_thread(thread_id)
         initial_state = {
             "issue_number": issue,
             "issue_title": "",
@@ -25,7 +25,10 @@ def cli(issue: int, restart: bool, db: str) -> None:
             "status": "running",
         }
         config = {"configurable": {"thread_id": thread_id}}
-        await graph.ainvoke(initial_state, config=config)
+        try:
+            await graph.ainvoke(initial_state, config=config)
+        finally:
+            await graph.checkpointer.conn.close()
 
     try:
         asyncio.run(_run())
