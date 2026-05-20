@@ -185,3 +185,16 @@ async def test_tdd_behavior_sets_error_and_does_not_increment_on_failure():
 
     assert result.get("error") == "test could not be made green"
     assert "current_behavior_index" not in result
+
+
+async def test_tdd_behavior_sets_error_when_index_out_of_bounds():
+    state = make_state(behaviors=["only one"], current_behavior_index=5)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="{}"),
+    ) as mock_run:
+        result = await nodes.tdd_behavior(state)
+
+    mock_run.assert_not_called()
+    assert "error" in result
+    assert result["error"]

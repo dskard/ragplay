@@ -68,10 +68,12 @@ async def plan_behaviors(state: IssueState) -> dict:
     }
 
 
-_TDD_BEHAVIOR_PROMPT_TEMPLATE = """
+_TDD_BEHAVIOR_PROMPT_PREFIX = """
 Implement this behavior using a TDD red/green/commit/review cycle:
 
-Behavior: {behavior}
+Behavior: """
+
+_TDD_BEHAVIOR_PROMPT_SUFFIX = """
 
 Steps:
 1. Write one failing test that verifies this behavior through the public interface.
@@ -84,16 +86,18 @@ Steps:
    until the review passes.
 
 Return ONLY a JSON object:
-- {{"status": "success"}} when all steps complete successfully
-- {{"error": "<description>"}} if any step fails unrecoverably
+- {"status": "success"} when all steps complete successfully
+- {"error": "<description>"} if any step fails unrecoverably
 """
 
 
 async def tdd_behavior(state: IssueState) -> dict:
     idx = state.get("current_behavior_index", 0)
     behaviors = state.get("behaviors", [])
-    behavior = behaviors[idx] if idx < len(behaviors) else ""
-    prompt = _TDD_BEHAVIOR_PROMPT_TEMPLATE.format(behavior=behavior)
+    if idx >= len(behaviors):
+        return {"error": f"tdd_behavior called with index {idx} but only {len(behaviors)} behaviors exist"}
+    behavior = behaviors[idx]
+    prompt = _TDD_BEHAVIOR_PROMPT_PREFIX + behavior + _TDD_BEHAVIOR_PROMPT_SUFFIX
     raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read", "Write", "Edit"])
     try:
         data = json.loads(raw)
