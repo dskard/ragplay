@@ -1,0 +1,21 @@
+[project]
+name = "langgraph-claude-agents"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "claude-agent-sdk>=0.2.82",
+    "click>=8.4.0",
+    "langgraph>=1.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=0.26.0",
+    "ruff>=0.15.13",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
