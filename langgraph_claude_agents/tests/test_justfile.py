@@ -93,6 +93,37 @@ def test_justfile_default_recipe_lists_setup_and_run_for_bootstrap():
     )
 
 
+def test_just_list_documents_setup_and_run_for_bootstrap():
+    # Behavior: the Justfile bootstraps the project. `just --list` (the
+    # discovery interface for new contributors) must surface human-readable
+    # descriptions for both the `setup` and `run` recipes so a newcomer can
+    # tell what each bootstrap target does without reading the Justfile.
+    if shutil.which("just") is None:
+        pytest.skip("`just` is not installed")
+    result = subprocess.run(
+        ["just", "--list"],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    output = result.stdout
+    setup_line = next(
+        (line for line in output.splitlines() if line.strip().startswith("setup")),
+        "",
+    )
+    run_line = next(
+        (line for line in output.splitlines() if line.strip().startswith("run")),
+        "",
+    )
+    assert "#" in setup_line, (
+        f"Expected `just --list` to show a description for `setup`; got:\n{output}"
+    )
+    assert "#" in run_line, (
+        f"Expected `just --list` to show a description for `run`; got:\n{output}"
+    )
+
+
 def test_justfile_run_target_uses_console_script():
     # main.py has been removed in favour of the langgraph-claude-agents console
     # script (see test_config.test_main_py_does_not_exist). The `run` recipe
