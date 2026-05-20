@@ -1,0 +1,10 @@
+source_up
+
+# Copy this file to .envrc and customize for your environment.
+# Then run `direnv allow` to load it.
+
+# Load variables from a local .env file if present.
+dotenv_if_exists
+
+# Activate the project's uv-managed virtualenv.
+# layout python python3

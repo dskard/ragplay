@@ -1,42 +1,28 @@
+"""Demonstrate the direct LLM invocation pattern with a PromptTemplate.
+
+This script is a runnable example, not the CLI entrypoint. It shows how to
+build a prompt from a ``PromptTemplate`` and then send the formatted prompt to
+the Claude Agent SDK via ``invoke_llm`` without allowing any tools and without
+going through the LangGraph workflow.
+
+The CLI for implementing GitHub issues lives in ``langgraph_claude_agents.cli``
+and is exposed as the ``langgraph-claude-agents`` console script.
+"""
+
 import asyncio
-import sys
-import click
-from langgraph_claude_agents.graph import build_graph
+
+from langgraph_claude_agents.agent import invoke_llm
+from langgraph_claude_agents.prompt_template import PromptTemplate
 
 
-@click.command()
-@click.option("--issue", required=True, type=int, help="GitHub issue number to implement")
-@click.option("--restart", is_flag=True, default=False, help="Restart from scratch, ignoring checkpoints")
-@click.option("--db", default=".langgraph_checkpoints.db", show_default=True, help="Path to the checkpoint database")
-def cli(issue: int, restart: bool, db: str) -> None:
-    async def _run() -> None:
-        async with build_graph(db=db) as graph:
-            thread_id = f"issue-{issue}"
-            if restart:
-                await graph.checkpointer.adelete_thread(thread_id)
-            initial_state = {
-                "issue_number": issue,
-                "issue_title": "",
-                "issue_body": "",
-                "behaviors": [],
-                "current_behavior_index": 0,
-                "acceptance_criteria": [],
-                "error": "",
-                "status": "running",
-            }
-            config = {"configurable": {"thread_id": thread_id}}
-            result = await graph.ainvoke(initial_state, config=config)
-            error = result.get("error", "")
-            if error:
-                click.echo(error, err=True)
-                sys.exit(1)
+GREETING_TEMPLATE = PromptTemplate("Say hello to {name} in one short sentence.")
 
-    try:
-        asyncio.run(_run())
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
+
+async def main() -> None:
+    prompt = GREETING_TEMPLATE.format(name="world")
+    response = await invoke_llm(prompt)
+    print(response)
 
 
 if __name__ == "__main__":
-    cli()
+    asyncio.run(main())

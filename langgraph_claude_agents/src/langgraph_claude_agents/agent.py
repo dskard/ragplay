@@ -8,3 +8,7 @@ async def run_agent(prompt: str, allowed_tools: list[str]) -> str:
         if isinstance(message, ResultMessage):
             return message.result or ""
     return ""
+
+
+async def invoke_llm(prompt: str) -> str:
+    return await run_agent(prompt, allowed_tools=[])
