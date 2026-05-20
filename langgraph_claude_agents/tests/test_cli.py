@@ -66,3 +66,13 @@ def test_cli_passes_db_and_restart_to_build_graph():
     with patch("main.build_graph", return_value=_make_mock_graph()) as mock_build:
         runner.invoke(cli, ["--issue", "1", "--restart", "--db", "custom.sqlite"])
     mock_build.assert_called_once_with(db="custom.sqlite", restart=True)
+
+
+def test_cli_exits_nonzero_when_graph_raises_exception():
+    runner = CliRunner()
+    mock_graph = AsyncMock()
+    mock_graph.ainvoke.side_effect = RuntimeError("sdk failure")
+    with patch("main.build_graph", return_value=mock_graph):
+        result = runner.invoke(cli, ["--issue", "1"])
+    assert result.exit_code == 1
+    assert "sdk failure" in result.output

@@ -24,7 +24,11 @@ def cli(issue: int, restart: bool, db: str) -> None:
         "error": "",
         "status": "running",
     }
-    result = asyncio.run(graph.ainvoke(initial_state))
+    try:
+        result = asyncio.run(graph.ainvoke(initial_state))
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
     if result.get("error"):
         click.echo(f"Error: {result['error']}", err=True)
         sys.exit(1)
