@@ -582,6 +582,19 @@ def test_make_state_includes_model_field():
     assert isinstance(state["model"], str)
 
 
+async def test_tdd_behavior_passes_model_from_state_to_run_agent():
+    behaviors = ["implement feature X"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0, model="claude-opus-4-7")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=json.dumps({"status": "success"})),
+    ) as mock_run:
+        await nodes.tdd_behavior(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-opus-4-7"
+
+
 async def test_plan_behaviors_passes_model_from_state_to_run_agent():
     behaviors = ["behavior one"]
     state = make_state(issue_body="body", model="claude-haiku-4-5")

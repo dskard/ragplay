@@ -123,7 +123,7 @@ async def tdd_behavior(state: IssueState) -> dict:
         return {"error": f"tdd_behavior called with index {idx} but only {len(behaviors)} behaviors exist"}
     behavior = behaviors[idx]
     prompt = _TDD_BEHAVIOR_PROMPT_PREFIX + behavior + _TDD_BEHAVIOR_PROMPT_SUFFIX
-    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read", "Write", "Edit"])
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read", "Write", "Edit"], model=state.get("model"))
     try:
         data = _extract_json(raw)
     except json.JSONDecodeError:
