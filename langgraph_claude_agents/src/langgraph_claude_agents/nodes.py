@@ -108,18 +108,19 @@ async def tdd_behavior(state: IssueState) -> dict:
     return {"current_behavior_index": idx + 1}
 
 
-_VERIFY_AC_PROMPT_TEMPLATE = """
+_VERIFY_AC_PROMPT_PREFIX = """
 You are verifying that all acceptance criteria for a GitHub issue are covered by the codebase.
 
 Acceptance criteria to check:
-{criteria_list}
+"""
 
+_VERIFY_AC_PROMPT_SUFFIX = """
 Search the codebase using Bash and Read tools to find evidence that each criterion is covered
 (test files or implementation files that clearly address the described behavior).
 
 Return ONLY a JSON object:
-{{"all_covered": true, "uncovered": []}} when every criterion is covered.
-{{"all_covered": false, "uncovered": ["<criterion text>", ...]}} listing only the uncovered ones.
+{"all_covered": true, "uncovered": []} when every criterion is covered.
+{"all_covered": false, "uncovered": ["<criterion text>", ...]} listing only the uncovered ones.
 """
 
 
@@ -128,7 +129,7 @@ async def verify_ac(state: IssueState) -> dict:
     if not ac:
         return {}
     criteria_list = "\n".join(f"- {c}" for c in ac)
-    prompt = _VERIFY_AC_PROMPT_TEMPLATE.format(criteria_list=criteria_list)
+    prompt = _VERIFY_AC_PROMPT_PREFIX + criteria_list + _VERIFY_AC_PROMPT_SUFFIX
     raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read"])
     try:
         data = json.loads(raw)
@@ -137,6 +138,8 @@ async def verify_ac(state: IssueState) -> dict:
     if data.get("all_covered"):
         return {}
     uncovered = data.get("uncovered", [])
+    if not uncovered:
+        return {}
     existing = state.get("behaviors", [])
     new_index = len(existing)
     return {
