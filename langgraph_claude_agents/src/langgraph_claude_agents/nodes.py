@@ -225,6 +225,7 @@ async def branch_review(state: IssueState) -> dict:
     raw = await run_agent(
         prompt=_BRANCH_REVIEW_PROMPT,
         allowed_tools=["Bash", "Read", "Write", "Edit"],
+        model=state.get("model"),
     )
     try:
         data = _extract_json(raw)
