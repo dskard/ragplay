@@ -69,3 +69,26 @@ async def test_setup_happy_path_updates_state():
     assert result["issue_title"] == "My Issue"
     assert result["issue_body"] == "Body text"
     assert result["status"] == "setup_done"
+
+
+async def test_setup_sets_error_when_tool_unavailable():
+    error_output = json.dumps({"error": "gh not found in PATH"})
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=error_output),
+    ):
+        result = await nodes.setup(make_state())
+
+    assert result.get("error") == "gh not found in PATH"
+    assert "issue_title" not in result
+
+
+async def test_setup_sets_error_on_malformed_agent_output():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="not valid json"),
+    ):
+        result = await nodes.setup(make_state())
+
+    assert "error" in result
+    assert result["error"]
