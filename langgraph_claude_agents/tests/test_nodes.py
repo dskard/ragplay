@@ -229,6 +229,81 @@ async def test_tdd_behavior_sets_error_on_non_json_agent_response():
     assert "current_behavior_index" not in result
 
 
+async def test_tdd_behavior_succeeds_when_agent_response_has_preamble():
+    behaviors = ["implement feature X"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0)
+    preamble_response = 'Exit 0 = PASS.\n\n{"status": "success"}'
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=preamble_response),
+    ):
+        result = await nodes.tdd_behavior(state)
+
+    assert result.get("current_behavior_index") == 1
+    assert "error" not in result
+
+
+async def test_setup_succeeds_when_agent_response_has_preamble():
+    preamble_response = 'Here is the result:\n{"issue_title": "T", "issue_body": "B"}'
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=preamble_response),
+    ):
+        result = await nodes.setup(make_state())
+
+    assert result["issue_title"] == "T"
+    assert result["issue_body"] == "B"
+    assert "error" not in result
+
+
+async def test_plan_behaviors_succeeds_when_agent_response_has_preamble():
+    preamble_response = 'Sure, here are the behaviors:\n["check tool available", "parse output"]'
+    state = make_state(issue_body="")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=preamble_response),
+    ):
+        result = await nodes.plan_behaviors(state)
+
+    assert result["behaviors"] == ["check tool available", "parse output"]
+    assert "error" not in result
+
+
+async def test_full_test_succeeds_when_agent_response_has_preamble():
+    preamble_response = 'Running tests...\n{"status": "success"}'
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=preamble_response),
+    ):
+        result = await nodes.full_test(make_state())
+
+    assert result == {}
+
+
+async def test_branch_review_succeeds_when_agent_response_has_preamble():
+    preamble_response = 'Review complete.\n{"status": "success"}'
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=preamble_response),
+    ):
+        result = await nodes.branch_review(make_state())
+
+    assert result == {}
+
+
+async def test_verify_ac_succeeds_when_agent_response_has_preamble():
+    ac = ["criterion one"]
+    state = make_state(acceptance_criteria=ac)
+    preamble_response = 'Checked all criteria.\n{"all_covered": true, "uncovered": []}'
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=preamble_response),
+    ):
+        result = await nodes.verify_ac(state)
+
+    assert result == {}
+
+
 async def test_tdd_behavior_sets_error_on_unexpected_json_type():
     behaviors = ["implement feature X"]
     state = make_state(behaviors=behaviors, current_behavior_index=0)

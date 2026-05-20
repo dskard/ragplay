@@ -1,9 +1,23 @@
 import json
 import re
 import sys
+from typing import Any
 
 from langgraph_claude_agents.agent import run_agent
 from langgraph_claude_agents.state import IssueState
+
+
+def _extract_json(text: str) -> Any:
+    """Extract and parse the first JSON object or array from text that may contain surrounding content."""
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(text):
+        if ch in ('{', '['):
+            try:
+                value, _ = decoder.raw_decode(text, i)
+                return value
+            except json.JSONDecodeError:
+                continue
+    raise json.JSONDecodeError("No JSON object or array found", text, 0)
 
 _SETUP_PROMPT_TEMPLATE = """
 Check that `gh` and `roborev` are available in PATH.
@@ -17,7 +31,7 @@ async def setup(state: IssueState) -> dict:
     prompt = _SETUP_PROMPT_TEMPLATE.format(issue_number=state["issue_number"])
     raw = await run_agent(prompt=prompt, allowed_tools=["Bash"])
     try:
-        data = json.loads(raw)
+        data = _extract_json(raw)
     except json.JSONDecodeError:
         return {"error": f"setup agent returned non-JSON: {raw!r}"}
     if not isinstance(data, dict):
@@ -59,7 +73,7 @@ async def plan_behaviors(state: IssueState) -> dict:
     prompt = _PLAN_BEHAVIORS_PROMPT_PREFIX + state["issue_body"]
     raw = await run_agent(prompt=prompt, allowed_tools=["Bash"])
     try:
-        behaviors = json.loads(raw)
+        behaviors = _extract_json(raw)
         if not isinstance(behaviors, list):
             raise ValueError("expected a JSON array")
     except (json.JSONDecodeError, ValueError) as exc:
@@ -103,7 +117,7 @@ async def tdd_behavior(state: IssueState) -> dict:
     prompt = _TDD_BEHAVIOR_PROMPT_PREFIX + behavior + _TDD_BEHAVIOR_PROMPT_SUFFIX
     raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read", "Write", "Edit"])
     try:
-        data = json.loads(raw)
+        data = _extract_json(raw)
     except json.JSONDecodeError:
         return {"error": f"tdd_behavior agent returned non-JSON: {raw!r}"}
     if not isinstance(data, dict):
@@ -137,7 +151,7 @@ async def verify_ac(state: IssueState) -> dict:
     prompt = _VERIFY_AC_PROMPT_PREFIX + criteria_list + _VERIFY_AC_PROMPT_SUFFIX
     raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read"])
     try:
-        data = json.loads(raw)
+        data = _extract_json(raw)
     except json.JSONDecodeError:
         return {"error": f"verify_ac agent returned non-JSON: {raw!r}"}
     if not isinstance(data, dict):
@@ -178,7 +192,7 @@ Return ONLY a JSON object:
 async def full_test(state: IssueState) -> dict:
     raw = await run_agent(prompt=_FULL_TEST_PROMPT, allowed_tools=["Bash", "Read"])
     try:
-        data = json.loads(raw)
+        data = _extract_json(raw)
     except json.JSONDecodeError:
         return {"error": f"full_test agent returned non-JSON: {raw!r}"}
     if not isinstance(data, dict):
@@ -205,7 +219,7 @@ async def branch_review(state: IssueState) -> dict:
         allowed_tools=["Bash", "Read", "Write", "Edit"],
     )
     try:
-        data = json.loads(raw)
+        data = _extract_json(raw)
     except json.JSONDecodeError:
         return {"error": f"branch_review agent returned non-JSON: {raw!r}"}
     if not isinstance(data, dict):
