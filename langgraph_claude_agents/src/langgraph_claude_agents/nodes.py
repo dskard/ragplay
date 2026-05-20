@@ -20,6 +20,8 @@ async def setup(state: IssueState) -> dict:
         data = json.loads(raw)
     except json.JSONDecodeError:
         return {"error": f"setup agent returned non-JSON: {raw!r}"}
+    if not isinstance(data, dict):
+        return {"error": f"setup agent returned unexpected JSON type: {raw!r}"}
     if "error" in data:
         return {"error": data["error"]}
     try:

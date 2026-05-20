@@ -75,6 +75,8 @@ def _make_graph(checkpointer) -> CompiledStateGraph:
         ["branch_review", "teardown"],
     )
     g.add_edge("branch_review", "teardown")
+    # Required by LangGraph graph validation; teardown always raises SystemExit
+    # so this edge is never traversed and the final checkpoint is not written.
     g.add_edge("teardown", END)
 
     return g.compile(checkpointer=checkpointer)

@@ -105,6 +105,17 @@ async def test_setup_sets_error_on_malformed_agent_output():
     assert result["error"]
 
 
+async def test_setup_sets_error_on_unexpected_json_type():
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value="[]"),
+    ):
+        result = await nodes.setup(make_state())
+
+    assert "error" in result
+    assert "unexpected JSON type" in result["error"]
+
+
 _ISSUE_BODY_WITH_AC = """
 ## Acceptance Criteria
 
