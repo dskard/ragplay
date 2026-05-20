@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
 class IssueState(TypedDict):
@@ -10,4 +10,4 @@ class IssueState(TypedDict):
     acceptance_criteria: list[str]
     error: str
     status: str
-    model: str
+    model: NotRequired[str | None]
