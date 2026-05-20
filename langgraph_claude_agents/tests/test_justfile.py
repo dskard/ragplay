@@ -124,6 +124,42 @@ def test_just_list_documents_setup_and_run_for_bootstrap():
     )
 
 
+def test_just_setup_installs_declared_dependencies():
+    # Behavior: invoking `just setup` must install the project's declared
+    # runtime dependencies so they are importable via `uv run`. We exercise
+    # the public interface (the recipe itself) and then assert that a
+    # declared dependency is available in the synced environment.
+    if shutil.which("just") is None:
+        pytest.skip("`just` is not installed")
+    setup_result = subprocess.run(
+        ["just", "setup"],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert setup_result.returncode == 0, (
+        "`just setup` failed:\n"
+        f"stdout:\n{setup_result.stdout}\nstderr:\n{setup_result.stderr}"
+    )
+    import_result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--no-sync",
+            "python",
+            "-c",
+            "import click, langgraph, langgraph_claude_agents",
+        ],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert import_result.returncode == 0, (
+        "Expected declared dependencies to be importable after `just setup`; "
+        f"stderr:\n{import_result.stderr}"
+    )
+
+
 def test_justfile_run_target_uses_console_script():
     # main.py has been removed in favour of the langgraph-claude-agents console
     # script (see test_config.test_main_py_does_not_exist). The `run` recipe
