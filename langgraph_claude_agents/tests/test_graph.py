@@ -39,6 +39,63 @@ async def test_build_graph_uses_async_sqlite_saver(tmp_path):
         assert isinstance(graph.checkpointer, AsyncSqliteSaver)
 
 
+async def test_checkpoint_persisted_to_sqlite_after_node(tmp_path):
+    db = str(tmp_path / "checkpoints.db")
+    config = {"configurable": {"thread_id": "issue-42"}}
+    state = {
+        "issue_number": 42,
+        "issue_title": "",
+        "issue_body": "",
+        "behaviors": [],
+        "current_behavior_index": 0,
+        "acceptance_criteria": [],
+        "error": "",
+        "status": "running",
+    }
+    mock_run = AsyncMock(side_effect=[
+        _setup_ok(), "[]",
+        '{"status": "success"}',
+        '{"status": "success"}',
+    ])
+    async with build_graph(db=db) as graph:
+        with patch("langgraph_claude_agents.nodes.sys") as mock_sys:
+            mock_sys.exit.side_effect = _fake_sys_exit
+            with patch("langgraph_claude_agents.nodes.run_agent", new=mock_run):
+                with pytest.raises(_ExitCalled):
+                    await graph.ainvoke(state, config=config)
+        checkpoints = [c async for c in graph.checkpointer.alist(config)]
+    assert len(checkpoints) > 0
+
+
+async def test_restart_clears_checkpoint(tmp_path):
+    db = str(tmp_path / "checkpoints.db")
+    config = {"configurable": {"thread_id": "issue-42"}}
+    state = {
+        "issue_number": 42,
+        "issue_title": "",
+        "issue_body": "",
+        "behaviors": [],
+        "current_behavior_index": 0,
+        "acceptance_criteria": [],
+        "error": "",
+        "status": "running",
+    }
+    mock_run = AsyncMock(side_effect=[
+        _setup_ok(), "[]",
+        '{"status": "success"}',
+        '{"status": "success"}',
+    ])
+    async with build_graph(db=db) as graph:
+        with patch("langgraph_claude_agents.nodes.sys") as mock_sys:
+            mock_sys.exit.side_effect = _fake_sys_exit
+            with patch("langgraph_claude_agents.nodes.run_agent", new=mock_run):
+                with pytest.raises(_ExitCalled):
+                    await graph.ainvoke(state, config=config)
+        await graph.checkpointer.adelete_thread("issue-42")
+        checkpoints = [c async for c in graph.checkpointer.alist(config)]
+    assert len(checkpoints) == 0
+
+
 async def test_happy_path_no_behaviors_routes_to_done():
     async with build_graph(db=":memory:") as graph:
         state = {
