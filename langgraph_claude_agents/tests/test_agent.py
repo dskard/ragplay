@@ -4,11 +4,6 @@ from claude_agent_sdk.types import ResultMessage
 from langgraph_claude_agents import agent
 
 
-async def make_async_iter(items):
-    for item in items:
-        yield item
-
-
 def make_result_message(result: str) -> ResultMessage:
     return ResultMessage(
         subtype="success",
@@ -22,12 +17,11 @@ def make_result_message(result: str) -> ResultMessage:
 
 
 async def test_run_agent_returns_final_text():
-    messages = [
-        make_result_message("the answer"),
-    ]
+    messages = [make_result_message("the answer")]
 
     async def fake_query(**kwargs):
-        return make_async_iter(messages)
+        for msg in messages:
+            yield msg
 
     with patch("langgraph_claude_agents.agent.query", new=fake_query):
         result = await agent.run_agent("hello", ["tool1"])
@@ -36,12 +30,9 @@ async def test_run_agent_returns_final_text():
 
 
 async def test_run_agent_propagates_iterator_exceptions():
-    async def failing_iter():
+    async def fake_query(**kwargs):
         raise RuntimeError("sdk failure")
         yield  # make it an async generator
-
-    async def fake_query(**kwargs):
-        return failing_iter()
 
     with pytest.raises(RuntimeError, match="sdk failure"):
         with patch("langgraph_claude_agents.agent.query", new=fake_query):
