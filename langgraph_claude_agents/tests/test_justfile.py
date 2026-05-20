@@ -43,6 +43,34 @@ def test_justfile_setup_target_runs_uv_sync():
     )
 
 
+def _just_dry_run(*args: str) -> str:
+    if shutil.which("just") is None:
+        pytest.skip("`just` is not installed")
+    # `just -n` echoes the recipe commands to stderr.
+    result = subprocess.run(
+        ["just", "-n", *args],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stderr.strip()
+
+
+def test_just_setup_dry_run_invokes_uv_sync():
+    # Public interface: invoking `just setup` must run `uv sync`.
+    assert _just_dry_run("setup") == "uv sync"
+
+
+def test_just_run_dry_run_forwards_issue_argument():
+    # Public interface: invoking `just run <issue>` must forward the issue
+    # number to the registered console script via `--issue`.
+    assert (
+        _just_dry_run("run", "42")
+        == "uv run langgraph-claude-agents --issue 42"
+    )
+
+
 def test_justfile_run_target_uses_console_script():
     # main.py has been removed in favour of the langgraph-claude-agents console
     # script (see test_config.test_main_py_does_not_exist). The `run` recipe
