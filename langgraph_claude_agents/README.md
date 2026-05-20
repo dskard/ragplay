@@ -1,4 +1,4 @@
-# langgraph_claude_agents
+# LangGraph Claude Agents
 
 A Python program that implements a GitHub issue end-to-end using LangGraph for orchestration and the Claude Agent SDK for autonomous execution within each node.
 
