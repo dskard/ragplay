@@ -36,7 +36,7 @@ async def test_node_returns_partial_state(name):
         "issue_number": 1,
         "issue_title": "test",
         "issue_body": "body",
-        "behaviors": [],
+        "behaviors": ["a behavior"],
         "current_behavior_index": 0,
         "acceptance_criteria": [],
         "error": "",
