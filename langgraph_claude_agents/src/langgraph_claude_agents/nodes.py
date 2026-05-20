@@ -1,5 +1,6 @@
 import json
 import re
+import sys
 
 from langgraph_claude_agents.agent import run_agent
 from langgraph_claude_agents.state import IssueState
@@ -209,4 +210,8 @@ async def branch_review(state: IssueState) -> dict:
 
 
 async def teardown(state: IssueState) -> dict:
-    return {"status": "done"}
+    error = state.get("error", "")
+    if error:
+        print(error)
+        sys.exit(1)
+    sys.exit(0)
