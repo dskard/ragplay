@@ -22,7 +22,7 @@ def _route_tdd_or_error(state: IssueState) -> str:
     return "verify_ac"
 
 
-def build_graph() -> CompiledStateGraph:
+def build_graph(db: str = "checkpoints.sqlite", restart: bool = False) -> CompiledStateGraph:
     graph = StateGraph(IssueState)
 
     graph.add_node("setup", nodes.setup)
