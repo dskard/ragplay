@@ -26,4 +26,4 @@ async def branch_review(state: IssueState) -> dict:
 
 
 async def teardown(state: IssueState) -> dict:
-    return {}
+    return {"status": "done"}
