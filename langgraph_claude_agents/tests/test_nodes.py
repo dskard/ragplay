@@ -25,6 +25,7 @@ def test_node_exists_and_is_async(name):
 _NODE_MOCK_RESPONSES = {
     "setup": json.dumps({"issue_title": "t", "issue_body": "b"}),
     "plan_behaviors": json.dumps([]),
+    "tdd_behavior": json.dumps({"status": "success"}),
 }
 
 
@@ -144,3 +145,43 @@ async def test_plan_behaviors_sets_error_when_agent_returns_object_not_array():
 
     assert "error" in result
     assert result["error"]
+
+
+async def test_tdd_behavior_calls_run_agent_with_correct_tools():
+    behaviors = ["implement feature X"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=json.dumps({"status": "success"})),
+    ) as mock_run:
+        await nodes.tdd_behavior(state)
+
+    mock_run.assert_called_once()
+    assert set(mock_run.call_args.kwargs.get("allowed_tools", [])) == {
+        "Bash", "Read", "Write", "Edit"
+    }
+
+
+async def test_tdd_behavior_increments_index_on_success():
+    behaviors = ["implement feature X", "implement feature Y"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=json.dumps({"status": "success"})),
+    ):
+        result = await nodes.tdd_behavior(state)
+
+    assert result["current_behavior_index"] == 1
+
+
+async def test_tdd_behavior_sets_error_and_does_not_increment_on_failure():
+    behaviors = ["implement feature X"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0)
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=json.dumps({"error": "test could not be made green"})),
+    ):
+        result = await nodes.tdd_behavior(state)
+
+    assert result.get("error") == "test could not be made green"
+    assert "current_behavior_index" not in result

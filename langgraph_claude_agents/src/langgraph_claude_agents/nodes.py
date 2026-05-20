@@ -68,8 +68,40 @@ async def plan_behaviors(state: IssueState) -> dict:
     }
 
 
+_TDD_BEHAVIOR_PROMPT_TEMPLATE = """
+Implement this behavior using a TDD red/green/commit/review cycle:
+
+Behavior: {behavior}
+
+Steps:
+1. Write one failing test that verifies this behavior through the public interface.
+   Run the full test suite and confirm only the new test fails.
+2. Write the minimal implementation to make the test pass.
+   Run the full test suite and confirm all tests pass.
+3. Stage only the files created or modified for this behavior and commit with a
+   Conventional Commits message (type(scope): subject, blank line, bullet body).
+4. Run `roborev wait`. If the review fails, fix the findings, re-commit, and repeat
+   until the review passes.
+
+Return ONLY a JSON object:
+- {{"status": "success"}} when all steps complete successfully
+- {{"error": "<description>"}} if any step fails unrecoverably
+"""
+
+
 async def tdd_behavior(state: IssueState) -> dict:
-    return {"current_behavior_index": state.get("current_behavior_index", 0) + 1}
+    idx = state.get("current_behavior_index", 0)
+    behaviors = state.get("behaviors", [])
+    behavior = behaviors[idx] if idx < len(behaviors) else ""
+    prompt = _TDD_BEHAVIOR_PROMPT_TEMPLATE.format(behavior=behavior)
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read", "Write", "Edit"])
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"current_behavior_index": idx + 1}
+    if "error" in data and data["error"]:
+        return {"error": data["error"]}
+    return {"current_behavior_index": idx + 1}
 
 
 async def verify_ac(state: IssueState) -> dict:

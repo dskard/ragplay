@@ -73,7 +73,8 @@ async def test_happy_path_with_behaviors_loops_tdd_until_exhausted():
         "error": "",
         "status": "running",
     }
-    mock = AsyncMock(side_effect=[_setup_ok(), behaviors_json])
+    tdd_ok = json.dumps({"status": "success"})
+    mock = AsyncMock(side_effect=[_setup_ok(), behaviors_json, tdd_ok, tdd_ok])
     with patch("langgraph_claude_agents.nodes.run_agent", new=mock):
         result = await graph.ainvoke(state)
     assert result["status"] == "done"
