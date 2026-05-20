@@ -582,6 +582,18 @@ def test_make_state_includes_model_field():
     assert isinstance(state["model"], str)
 
 
+async def test_full_test_passes_model_from_state_to_run_agent():
+    state = make_state(model="claude-haiku-4-5")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value='{"status": "success"}'),
+    ) as mock_run:
+        await nodes.full_test(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-haiku-4-5"
+
+
 async def test_verify_ac_passes_model_from_state_to_run_agent():
     ac = ["criterion one"]
     state = make_state(acceptance_criteria=ac, model="claude-sonnet-4-6")

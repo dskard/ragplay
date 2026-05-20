@@ -198,7 +198,7 @@ Return ONLY a JSON object:
 
 
 async def full_test(state: IssueState) -> dict:
-    raw = await run_agent(prompt=_FULL_TEST_PROMPT, allowed_tools=["Bash", "Read"])
+    raw = await run_agent(prompt=_FULL_TEST_PROMPT, allowed_tools=["Bash", "Read"], model=state.get("model"))
     try:
         data = _extract_json(raw)
     except json.JSONDecodeError:
