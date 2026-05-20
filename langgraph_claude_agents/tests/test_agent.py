@@ -33,3 +33,16 @@ async def test_run_agent_returns_final_text():
         result = await agent.run_agent("hello", ["tool1"])
 
     assert result == "the answer"
+
+
+async def test_run_agent_propagates_iterator_exceptions():
+    async def failing_iter():
+        raise RuntimeError("sdk failure")
+        yield  # make it an async generator
+
+    async def fake_query(**kwargs):
+        return failing_iter()
+
+    with pytest.raises(RuntimeError, match="sdk failure"):
+        with patch("langgraph_claude_agents.agent.query", new=fake_query):
+            await agent.run_agent("hello", [])
