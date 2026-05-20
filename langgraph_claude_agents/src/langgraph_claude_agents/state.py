@@ -10,3 +10,4 @@ class IssueState(TypedDict):
     acceptance_criteria: list[str]
     error: str
     status: str
+    model: str
