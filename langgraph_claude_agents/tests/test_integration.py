@@ -49,11 +49,11 @@ async def test_run_agent_returns_result_field_from_valid_result_message():
 
 @pytest.mark.integration
 async def test_run_agent_returns_empty_string_when_query_yields_no_result_message():
-    # Scenario: query yields messages but none are ResultMessage instances.
+    # Scenario: query yields no messages at all (empty async generator).
     # Function(s): run_agent
-    # Verifies that run_agent returns "" when no ResultMessage is encountered.
+    # Verifies that run_agent returns "" when the generator is exhausted with no messages.
     async def fake_query(**kwargs):
-        # Yield nothing — exhausted generator with no messages.
+        # Empty generator — returns immediately without yielding anything.
         return
         yield  # make this an async generator
 
