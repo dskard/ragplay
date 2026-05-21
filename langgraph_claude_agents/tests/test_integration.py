@@ -7,6 +7,7 @@
 # Run with: pytest -m integration
 # Skip with: pytest -m "not integration"
 import json
+import uuid
 from unittest.mock import patch
 
 import pytest
@@ -14,6 +15,7 @@ import pytest
 from claude_agent_sdk.types import ResultMessage
 from langgraph_claude_agents import agent, nodes
 from langgraph_claude_agents.agent import run_agent
+from langgraph_claude_agents.graph import graph
 from langgraph_claude_agents.nodes import setup
 
 
@@ -210,6 +212,20 @@ def make_empty_query():
     return fake_query
 
 
+def make_sequential_query(*result_texts):
+    # Return an async generator function that yields a different ResultMessage on each call.
+    # The closure captures a mutable call counter so each invocation draws the next result.
+    call_count = [0]
+
+    async def fake_query(**kwargs):
+        idx = call_count[0]
+        call_count[0] += 1
+        text = result_texts[idx] if idx < len(result_texts) else ""
+        yield make_result_message(text)
+
+    return fake_query
+
+
 @pytest.mark.integration  # exercises node→run_agent→query integration path
 async def test_setup_sets_error_when_query_yields_no_result_message():
     # Scenario: query yields no messages, so run_agent returns "".
@@ -245,3 +261,57 @@ async def test_tdd_behavior_sets_error_when_query_yields_no_result_message():
 
     assert "error" in result
     assert result["error"]
+
+
+@pytest.mark.integration
+async def test_graph_end_to_end_all_nodes_in_sequence():
+    # Scenario: all six run_agent nodes execute in order with a stubbed query that
+    #   returns a distinct ResultMessage per call; teardown follows with no agent call.
+    # Function(s): graph.ainvoke (module-level graph backed by MemorySaver)
+    # Verifies the final State has status=="done" with all expected fields populated
+    # when the behavior list contains exactly one item so the TDD cycle fires once.
+
+    issue_body = "## Acceptance Criteria\n\n- [ ] criterion one\n"
+
+    # Six sequential responses, one per node that calls run_agent:
+    #   1. setup        -> JSON with issue_title and issue_body
+    #   2. plan_behaviors -> JSON array with exactly one behavior
+    #   3. tdd_behavior -> {"status": "success"}
+    #   4. verify_ac    -> {"all_covered": true, "uncovered": []}
+    #   5. full_test    -> {"status": "success"}
+    #   6. branch_review -> {"status": "success"}
+    responses = [
+        json.dumps({"issue_title": "Test Issue", "issue_body": issue_body}),
+        json.dumps(["behavior one"]),
+        json.dumps({"status": "success"}),
+        json.dumps({"all_covered": True, "uncovered": []}),
+        json.dumps({"status": "success"}),
+        json.dumps({"status": "success"}),
+    ]
+
+    initial_state = {
+        "issue_number": 99,
+        "issue_title": "",
+        "issue_body": "",
+        "behaviors": [],
+        "current_behavior_index": 0,
+        "acceptance_criteria": [],
+        "error": "",
+        "status": "running",
+        "model": None,
+    }
+
+    # Use a unique thread ID each run to prevent MemorySaver checkpoint contamination.
+    thread_id = str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
+
+    with patch("langgraph_claude_agents.agent.query", new=make_sequential_query(*responses)):
+        result = await graph.ainvoke(initial_state, config=config)
+
+    assert result["status"] == "done"
+    assert result["issue_title"] == "Test Issue"
+    assert result["issue_body"] == issue_body
+    assert result["behaviors"] == ["behavior one"]
+    assert result["current_behavior_index"] == 1
+    assert result["acceptance_criteria"] == ["criterion one"]
+    assert not result.get("error")
