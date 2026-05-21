@@ -153,3 +153,50 @@ async def test_tdd_behavior_happy_path_increments_index_via_query():
 
     assert result["current_behavior_index"] == 1
     assert "error" not in result
+
+
+@pytest.mark.integration
+async def test_verify_ac_happy_path_returns_empty_dict_via_query():
+    # Scenario: query yields a ResultMessage with all_covered=True.
+    # Function(s): verify_ac (via run_agent via query)
+    # Verifies verify_ac returns {} when all acceptance criteria are covered.
+    result_json = json.dumps({"all_covered": True, "uncovered": []})
+    state = make_state(acceptance_criteria=["tool is available"])
+    with patch("langgraph_claude_agents.agent.query", new=make_query_returning(result_json)):
+        result = await nodes.verify_ac(state)
+
+    assert result == {}
+
+
+@pytest.mark.integration
+async def test_full_test_happy_path_returns_empty_dict_via_query():
+    # Scenario: query yields a ResultMessage with {"status": "success"}.
+    # Function(s): full_test (via run_agent via query)
+    # Verifies full_test returns {} when all tests pass.
+    result_json = json.dumps({"status": "success"})
+    with patch("langgraph_claude_agents.agent.query", new=make_query_returning(result_json)):
+        result = await nodes.full_test(make_state())
+
+    assert result == {}
+
+
+@pytest.mark.integration
+async def test_branch_review_happy_path_returns_empty_dict_via_query():
+    # Scenario: query yields a ResultMessage with {"status": "success"}.
+    # Function(s): branch_review (via run_agent via query)
+    # Verifies branch_review returns {} when the review passes.
+    result_json = json.dumps({"status": "success"})
+    with patch("langgraph_claude_agents.agent.query", new=make_query_returning(result_json)):
+        result = await nodes.branch_review(make_state())
+
+    assert result == {}
+
+
+@pytest.mark.integration
+async def test_teardown_happy_path_returns_done_status():
+    # Scenario: state has no error set.
+    # Function(s): teardown
+    # Verifies teardown returns {"status": "done"} when there is no error in state.
+    result = await nodes.teardown(make_state(error=""))
+
+    assert result == {"status": "done"}
