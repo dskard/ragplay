@@ -213,17 +213,23 @@ def make_empty_query():
 
 
 def make_sequential_query(*result_texts):
-    # Return an async generator function that yields a different ResultMessage on each call.
-    # The closure captures a mutable call counter so each invocation draws the next result.
+    # Return (fake_query, call_count) where fake_query yields a different ResultMessage
+    # per call. Raises IndexError if called more times than responses provided (over-call
+    # detection). Callers should assert call_count[0] == len(result_texts) afterwards
+    # to catch under-call (skipped nodes).
     call_count = [0]
 
     async def fake_query(**kwargs):
         idx = call_count[0]
+        if idx >= len(result_texts):
+            raise IndexError(
+                f"make_sequential_query called {idx + 1} times but only "
+                f"{len(result_texts)} responses provided"
+            )
         call_count[0] += 1
-        text = result_texts[idx] if idx < len(result_texts) else ""
-        yield make_result_message(text)
+        yield make_result_message(result_texts[idx])
 
-    return fake_query
+    return fake_query, call_count
 
 
 @pytest.mark.integration  # exercises node→run_agent→query integration path
@@ -305,9 +311,12 @@ async def test_graph_end_to_end_all_nodes_in_sequence():
     thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
 
-    with patch("langgraph_claude_agents.agent.query", new=make_sequential_query(*responses)):
+    fake_query, call_count = make_sequential_query(*responses)
+    with patch("langgraph_claude_agents.agent.query", new=fake_query):
         result = await graph.ainvoke(initial_state, config=config)
 
+    # Verify all six nodes actually fired — catches silent node-skipping regressions.
+    assert call_count[0] == len(responses)
     assert result["status"] == "done"
     assert result["issue_title"] == "Test Issue"
     assert result["issue_body"] == issue_body
