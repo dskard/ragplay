@@ -106,7 +106,7 @@ def make_query_returning(result_text):
     return fake_query
 
 
-@pytest.mark.integration
+@pytest.mark.integration  # exercises node→run_agent→query integration path
 async def test_setup_happy_path_updates_state_via_query():
     # Scenario: query yields a ResultMessage whose result is valid setup JSON.
     # Function(s): setup (via run_agent via query)
@@ -121,7 +121,7 @@ async def test_setup_happy_path_updates_state_via_query():
     assert "error" not in result
 
 
-@pytest.mark.integration
+@pytest.mark.integration  # exercises node→run_agent→query integration path
 async def test_plan_behaviors_happy_path_updates_state_via_query():
     # Scenario: query yields a ResultMessage whose result is a valid JSON array of behaviors.
     # Function(s): plan_behaviors (via run_agent via query)
@@ -141,7 +141,7 @@ async def test_plan_behaviors_happy_path_updates_state_via_query():
     assert "error" not in result
 
 
-@pytest.mark.integration
+@pytest.mark.integration  # exercises node→run_agent→query integration path
 async def test_tdd_behavior_happy_path_increments_index_via_query():
     # Scenario: query yields a ResultMessage whose result is {"status": "success"}.
     # Function(s): tdd_behavior (via run_agent via query)
@@ -155,7 +155,7 @@ async def test_tdd_behavior_happy_path_increments_index_via_query():
     assert "error" not in result
 
 
-@pytest.mark.integration
+@pytest.mark.integration  # exercises node→run_agent→query integration path
 async def test_verify_ac_happy_path_returns_empty_dict_via_query():
     # Scenario: query yields a ResultMessage with all_covered=True.
     # Function(s): verify_ac (via run_agent via query)
@@ -168,7 +168,7 @@ async def test_verify_ac_happy_path_returns_empty_dict_via_query():
     assert result == {}
 
 
-@pytest.mark.integration
+@pytest.mark.integration  # exercises node→run_agent→query integration path
 async def test_full_test_happy_path_returns_empty_dict_via_query():
     # Scenario: query yields a ResultMessage with {"status": "success"}.
     # Function(s): full_test (via run_agent via query)
@@ -180,7 +180,7 @@ async def test_full_test_happy_path_returns_empty_dict_via_query():
     assert result == {}
 
 
-@pytest.mark.integration
+@pytest.mark.integration  # exercises node→run_agent→query integration path
 async def test_branch_review_happy_path_returns_empty_dict_via_query():
     # Scenario: query yields a ResultMessage with {"status": "success"}.
     # Function(s): branch_review (via run_agent via query)
@@ -192,7 +192,7 @@ async def test_branch_review_happy_path_returns_empty_dict_via_query():
     assert result == {}
 
 
-@pytest.mark.integration
+@pytest.mark.integration  # grouped with other node integration tests per issue AC
 async def test_teardown_happy_path_returns_done_status():
     # Scenario: state has no error set.
     # Function(s): teardown
