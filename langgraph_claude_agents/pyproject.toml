@@ -28,3 +28,6 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 asyncio_mode = "auto"
+markers = [
+    "integration: mark test as an integration test (requires external services)",
+]
