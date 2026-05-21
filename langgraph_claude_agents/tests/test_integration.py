@@ -200,3 +200,48 @@ async def test_teardown_happy_path_returns_done_status():
     result = await nodes.teardown(make_state(error=""))
 
     assert result == {"status": "done"}
+
+
+def make_empty_query():
+    # Return an async generator function that yields nothing (no ResultMessage).
+    async def fake_query(**kwargs):
+        return
+        yield  # make this an async generator
+    return fake_query
+
+
+@pytest.mark.integration  # exercises node→run_agent→query integration path
+async def test_setup_sets_error_when_query_yields_no_result_message():
+    # Scenario: query yields no messages, so run_agent returns "".
+    # Function(s): setup (via run_agent via query)
+    # Verifies setup sets error in State when run_agent returns empty string.
+    with patch("langgraph_claude_agents.agent.query", new=make_empty_query()):
+        result = await nodes.setup(make_state())
+
+    assert "error" in result
+    assert result["error"]
+
+
+@pytest.mark.integration  # exercises node→run_agent→query integration path
+async def test_plan_behaviors_sets_error_when_query_yields_no_result_message():
+    # Scenario: query yields no messages, so run_agent returns "".
+    # Function(s): plan_behaviors (via run_agent via query)
+    # Verifies plan_behaviors sets error in State when run_agent returns empty string.
+    with patch("langgraph_claude_agents.agent.query", new=make_empty_query()):
+        result = await nodes.plan_behaviors(make_state())
+
+    assert "error" in result
+    assert result["error"]
+
+
+@pytest.mark.integration  # exercises node→run_agent→query integration path
+async def test_tdd_behavior_sets_error_when_query_yields_no_result_message():
+    # Scenario: query yields no messages, so run_agent returns "".
+    # Function(s): tdd_behavior (via run_agent via query)
+    # Verifies tdd_behavior sets error in State when run_agent returns empty string.
+    state = make_state(behaviors=["implement feature X"], current_behavior_index=0)
+    with patch("langgraph_claude_agents.agent.query", new=make_empty_query()):
+        result = await nodes.tdd_behavior(state)
+
+    assert "error" in result
+    assert result["error"]
