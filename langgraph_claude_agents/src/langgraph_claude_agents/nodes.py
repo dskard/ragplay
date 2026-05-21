@@ -37,7 +37,7 @@ If `gh` or `roborev` are not available, return a JSON object with key "error" de
 
 async def setup(state: IssueState) -> dict:
     prompt = _SETUP_PROMPT_TEMPLATE.format(issue_number=state["issue_number"])
-    raw = await run_agent(prompt=prompt, allowed_tools=["Bash"])
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash"], model=state.get("model"))
     try:
         data = _extract_json(raw)
     except json.JSONDecodeError:
@@ -79,7 +79,7 @@ def _extract_acceptance_criteria(issue_body: str) -> list[str]:
 
 async def plan_behaviors(state: IssueState) -> dict:
     prompt = _PLAN_BEHAVIORS_PROMPT_PREFIX + state["issue_body"]
-    raw = await run_agent(prompt=prompt, allowed_tools=["Bash"])
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash"], model=state.get("model"))
     try:
         behaviors = _extract_json(raw)
         if not isinstance(behaviors, list):
@@ -123,7 +123,7 @@ async def tdd_behavior(state: IssueState) -> dict:
         return {"error": f"tdd_behavior called with index {idx} but only {len(behaviors)} behaviors exist"}
     behavior = behaviors[idx]
     prompt = _TDD_BEHAVIOR_PROMPT_PREFIX + behavior + _TDD_BEHAVIOR_PROMPT_SUFFIX
-    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read", "Write", "Edit"])
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read", "Write", "Edit"], model=state.get("model"))
     try:
         data = _extract_json(raw)
     except json.JSONDecodeError:
@@ -157,7 +157,7 @@ async def verify_ac(state: IssueState) -> dict:
         return {}
     criteria_list = "\n".join(f"- {c}" for c in ac)
     prompt = _VERIFY_AC_PROMPT_PREFIX + criteria_list + _VERIFY_AC_PROMPT_SUFFIX
-    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read"])
+    raw = await run_agent(prompt=prompt, allowed_tools=["Bash", "Read"], model=state.get("model"))
     try:
         data = _extract_json(raw)
     except json.JSONDecodeError:
@@ -198,7 +198,7 @@ Return ONLY a JSON object:
 
 
 async def full_test(state: IssueState) -> dict:
-    raw = await run_agent(prompt=_FULL_TEST_PROMPT, allowed_tools=["Bash", "Read"])
+    raw = await run_agent(prompt=_FULL_TEST_PROMPT, allowed_tools=["Bash", "Read"], model=state.get("model"))
     try:
         data = _extract_json(raw)
     except json.JSONDecodeError:
@@ -225,6 +225,7 @@ async def branch_review(state: IssueState) -> dict:
     raw = await run_agent(
         prompt=_BRANCH_REVIEW_PROMPT,
         allowed_tools=["Bash", "Read", "Write", "Edit"],
+        model=state.get("model"),
     )
     try:
         data = _extract_json(raw)

@@ -11,4 +11,10 @@ def test_issue_state_has_all_eight_fields():
     assert "acceptance_criteria" in fields
     assert "error" in fields
     assert "status" in fields
-    assert len(fields) == 8
+    assert len(fields) == 9
+
+
+def test_issue_state_has_model_field():
+    fields = IssueState.__required_keys__ | IssueState.__optional_keys__
+    assert "model" in fields
+    assert len(fields) == 9

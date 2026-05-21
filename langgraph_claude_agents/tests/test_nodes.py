@@ -58,6 +58,7 @@ def make_state(**overrides):
         "acceptance_criteria": [],
         "error": "",
         "status": "running",
+        "model": "claude-sonnet-4-6",
     }
     base.update(overrides)
     return base
@@ -573,3 +574,86 @@ async def test_teardown_returns_done_status_when_no_error():
     state = make_state(error="")
     result = await nodes.teardown(state)
     assert result == {"status": "done"}
+
+
+def test_make_state_includes_model_field():
+    state = make_state()
+    assert "model" in state
+    assert isinstance(state["model"], str)
+
+
+async def test_branch_review_passes_model_from_state_to_run_agent():
+    state = make_state(model="claude-opus-4-7")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value='{"status": "success"}'),
+    ) as mock_run:
+        await nodes.branch_review(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-opus-4-7"
+
+
+async def test_full_test_passes_model_from_state_to_run_agent():
+    state = make_state(model="claude-haiku-4-5")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value='{"status": "success"}'),
+    ) as mock_run:
+        await nodes.full_test(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-haiku-4-5"
+
+
+async def test_verify_ac_passes_model_from_state_to_run_agent():
+    ac = ["criterion one"]
+    state = make_state(acceptance_criteria=ac, model="claude-sonnet-4-6")
+    agent_response = json.dumps({"all_covered": True, "uncovered": []})
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=agent_response),
+    ) as mock_run:
+        await nodes.verify_ac(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-sonnet-4-6"
+
+
+async def test_tdd_behavior_passes_model_from_state_to_run_agent():
+    behaviors = ["implement feature X"]
+    state = make_state(behaviors=behaviors, current_behavior_index=0, model="claude-opus-4-7")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=json.dumps({"status": "success"})),
+    ) as mock_run:
+        await nodes.tdd_behavior(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-opus-4-7"
+
+
+async def test_plan_behaviors_passes_model_from_state_to_run_agent():
+    behaviors = ["behavior one"]
+    state = make_state(issue_body="body", model="claude-haiku-4-5")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=json.dumps(behaviors)),
+    ) as mock_run:
+        await nodes.plan_behaviors(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-haiku-4-5"
+
+
+async def test_setup_passes_model_from_state_to_run_agent():
+    agent_output = json.dumps({"issue_title": "T", "issue_body": "B"})
+    state = make_state(model="claude-opus-4-7")
+    with patch(
+        "langgraph_claude_agents.nodes.run_agent",
+        new=AsyncMock(return_value=agent_output),
+    ) as mock_run:
+        await nodes.setup(state)
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.kwargs.get("model") == "claude-opus-4-7"

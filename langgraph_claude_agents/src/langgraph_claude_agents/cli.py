@@ -8,7 +8,8 @@ from langgraph_claude_agents.graph import build_graph
 @click.option("--issue", required=True, type=int, help="GitHub issue number to implement")
 @click.option("--restart", is_flag=True, default=False, help="Restart from scratch, ignoring checkpoints")
 @click.option("--db", default=".langgraph_checkpoints.db", show_default=True, help="Path to the checkpoint database")
-def cli(issue: int, restart: bool, db: str) -> None:
+@click.option("--model", default="claude-sonnet-4-6", show_default=True, help="Claude model to use")
+def cli(issue: int, restart: bool, db: str, model: str) -> None:
     async def _run() -> None:
         async with build_graph(db=db) as graph:
             thread_id = f"issue-{issue}"
@@ -23,6 +24,7 @@ def cli(issue: int, restart: bool, db: str) -> None:
                 "acceptance_criteria": [],
                 "error": "",
                 "status": "running",
+                "model": model,
             }
             config = {"configurable": {"thread_id": thread_id}}
             result = await graph.ainvoke(initial_state, config=config)

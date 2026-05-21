@@ -96,3 +96,37 @@ def test_cli_exits_nonzero_when_graph_returns_error_in_state():
         result = runner.invoke(cli, ["--issue", "1"])
     assert result.exit_code == 1
     assert "tdd step failed unrecoverably" in result.output
+
+
+def test_cli_accepts_model_flag():
+    runner = CliRunner()
+    with patch("langgraph_claude_agents.cli.build_graph", _mock_build()):
+        result = runner.invoke(cli, ["--issue", "1", "--model", "claude-opus-4-7"])
+    assert result.exit_code == 0
+
+
+def test_cli_default_model_is_claude_sonnet_4_6():
+    runner = CliRunner()
+    with patch("langgraph_claude_agents.cli.build_graph", _mock_build()):
+        result = runner.invoke(cli, ["--help"])
+    assert "claude-sonnet-4-6" in result.output
+
+
+def test_cli_passes_default_model_to_initial_state():
+    runner = CliRunner()
+    mock_graph = _make_mock_graph()
+    with patch("langgraph_claude_agents.cli.build_graph", _mock_build(mock_graph)):
+        runner.invoke(cli, ["--issue", "1"])
+    call_args = mock_graph.ainvoke.call_args
+    initial_state = call_args[0][0]
+    assert initial_state["model"] == "claude-sonnet-4-6"
+
+
+def test_cli_passes_explicit_model_to_initial_state():
+    runner = CliRunner()
+    mock_graph = _make_mock_graph()
+    with patch("langgraph_claude_agents.cli.build_graph", _mock_build(mock_graph)):
+        runner.invoke(cli, ["--issue", "1", "--model", "claude-opus-4-7"])
+    call_args = mock_graph.ainvoke.call_args
+    initial_state = call_args[0][0]
+    assert initial_state["model"] == "claude-opus-4-7"

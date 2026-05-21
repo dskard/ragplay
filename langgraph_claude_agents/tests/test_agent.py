@@ -50,3 +50,29 @@ async def test_run_agent_propagates_iterator_exceptions():
     with pytest.raises(RuntimeError, match="sdk failure"):
         with patch("langgraph_claude_agents.agent.query", new=fake_query):
             await agent.run_agent("hello", [])
+
+
+async def test_run_agent_passes_model_to_options():
+    captured = {}
+
+    async def fake_query(**kwargs):
+        captured["options"] = kwargs.get("options")
+        yield make_result_message("ok")
+
+    with patch("langgraph_claude_agents.agent.query", new=fake_query):
+        with patch("langgraph_claude_agents.agent.ClaudeAgentOptions") as MockOptions:
+            MockOptions.return_value = object()
+            await agent.run_agent("hello", [], model="claude-opus-4-7")
+            MockOptions.assert_called_once_with(
+                allowed_tools=[], model="claude-opus-4-7"
+            )
+
+
+async def test_run_agent_model_none_does_not_raise():
+    async def fake_query(**kwargs):
+        yield make_result_message("ok")
+
+    with patch("langgraph_claude_agents.agent.query", new=fake_query):
+        result = await agent.run_agent("hello", [], model=None)
+
+    assert result == "ok"
