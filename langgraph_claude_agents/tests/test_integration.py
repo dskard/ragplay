@@ -61,3 +61,17 @@ async def test_run_agent_returns_empty_string_when_query_yields_no_result_messag
         result = await agent.run_agent("prompt", [])
 
     assert result == ""
+
+
+@pytest.mark.integration
+async def test_run_agent_returns_empty_string_when_result_message_has_none_result():
+    # Scenario: query yields a ResultMessage but its result field is None.
+    # Function(s): run_agent
+    # Verifies that run_agent returns "" instead of propagating None.
+    async def fake_query(**kwargs):
+        yield make_result_message(None)
+
+    with patch("langgraph_claude_agents.agent.query", new=fake_query):
+        result = await agent.run_agent("prompt", [])
+
+    assert result == ""
