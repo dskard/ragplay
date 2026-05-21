@@ -2,12 +2,13 @@
 # Tests marked @pytest.mark.integration require external services (LLM API).
 # Run with: pytest -m integration
 # Skip with: pytest -m "not integration"
+import json
 from unittest.mock import patch
 
 import pytest
 
 from claude_agent_sdk.types import ResultMessage
-from langgraph_claude_agents import agent
+from langgraph_claude_agents import agent, nodes
 from langgraph_claude_agents.agent import run_agent
 from langgraph_claude_agents.nodes import setup
 
@@ -75,3 +76,76 @@ async def test_run_agent_returns_empty_string_when_result_message_has_none_resul
         result = await agent.run_agent("prompt", [])
 
     assert result == ""
+
+
+def make_state(**overrides):
+    # Build a minimal IssueState dict for node tests, with optional field overrides.
+    base = {
+        "issue_number": 7,
+        "issue_title": "",
+        "issue_body": "",
+        "behaviors": [],
+        "current_behavior_index": 0,
+        "acceptance_criteria": [],
+        "error": "",
+        "status": "running",
+        "model": None,
+    }
+    base.update(overrides)
+    return base
+
+
+def make_query_returning(result_text):
+    # Return an async generator function that yields a single ResultMessage with result_text.
+    async def fake_query(**kwargs):
+        yield make_result_message(result_text)
+    return fake_query
+
+
+@pytest.mark.integration
+async def test_setup_happy_path_updates_state_via_query():
+    # Scenario: query yields a ResultMessage whose result is valid setup JSON.
+    # Function(s): setup (via run_agent via query)
+    # Verifies setup returns correct State fields when query produces valid output.
+    result_json = json.dumps({"issue_title": "My Issue", "issue_body": "Body text"})
+    with patch("langgraph_claude_agents.agent.query", new=make_query_returning(result_json)):
+        result = await nodes.setup(make_state())
+
+    assert result["issue_title"] == "My Issue"
+    assert result["issue_body"] == "Body text"
+    assert result["status"] == "setup_done"
+    assert "error" not in result
+
+
+@pytest.mark.integration
+async def test_plan_behaviors_happy_path_updates_state_via_query():
+    # Scenario: query yields a ResultMessage whose result is a valid JSON array of behaviors.
+    # Function(s): plan_behaviors (via run_agent via query)
+    # Verifies plan_behaviors returns behaviors and resets index when query produces valid output.
+    behaviors = ["check tool available", "parse output"]
+    issue_body = "## Acceptance Criteria\n\n- [ ] tool is available\n- [ ] output is parsed\n"
+    result_json = json.dumps(behaviors)
+    with patch(
+        "langgraph_claude_agents.agent.query",
+        new=make_query_returning(result_json),
+    ):
+        result = await nodes.plan_behaviors(make_state(issue_body=issue_body))
+
+    assert result["behaviors"] == behaviors
+    assert result["current_behavior_index"] == 0
+    assert result["acceptance_criteria"] == ["tool is available", "output is parsed"]
+    assert "error" not in result
+
+
+@pytest.mark.integration
+async def test_tdd_behavior_happy_path_increments_index_via_query():
+    # Scenario: query yields a ResultMessage whose result is {"status": "success"}.
+    # Function(s): tdd_behavior (via run_agent via query)
+    # Verifies tdd_behavior increments current_behavior_index when query produces valid output.
+    result_json = json.dumps({"status": "success"})
+    state = make_state(behaviors=["implement feature X"], current_behavior_index=0)
+    with patch("langgraph_claude_agents.agent.query", new=make_query_returning(result_json)):
+        result = await nodes.tdd_behavior(state)
+
+    assert result["current_behavior_index"] == 1
+    assert "error" not in result
