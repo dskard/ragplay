@@ -1,6 +1,8 @@
 # Tests that the pytest configuration is correctly set up for the integration marker.
 # Functions tested: pyproject.toml [tool.pytest.ini_options] markers configuration,
-#                   tests/test_integration.py scaffold structure.
+#                   pytest collection behavior for the integration marker.
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -23,22 +25,31 @@ def test_integration_test_file_exists():
     assert test_integration_path.exists(), "Expected tests/test_integration.py to exist"
 
 
-def test_integration_test_file_imports_agent_and_nodes():
-    # Verify that test_integration.py contains the required module imports.
-    test_integration_path = Path(__file__).parent / "test_integration.py"
-    content = test_integration_path.read_text()
-    assert "langgraph_claude_agents.agent" in content, (
-        "Expected test_integration.py to import from langgraph_claude_agents.agent"
+def test_integration_tests_are_collected_by_marker():
+    # Use pytest --collect-only to verify at least one test is collected under -m integration.
+    # This tests actual pytest behavior rather than file content.
+    project_root = Path(__file__).parent.parent
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "-m", "integration"],
+        capture_output=True,
+        text=True,
+        cwd=project_root,
     )
-    assert "langgraph_claude_agents.nodes" in content, (
-        "Expected test_integration.py to import from langgraph_claude_agents.nodes"
+    collected = result.stdout + result.stderr
+    assert "test_integration" in collected, (
+        "Expected pytest -m integration to collect at least one test from test_integration.py. "
+        f"Output was: {collected}"
     )
 
 
-def test_integration_test_file_has_marked_test():
-    # Verify that test_integration.py contains at least one @pytest.mark.integration test.
+def test_integration_module_imports_are_valid():
+    # Import test_integration as a module to verify its imports resolve without errors.
+    # This tests actual import behavior rather than checking file contents as text.
+    import importlib.util
+
     test_integration_path = Path(__file__).parent / "test_integration.py"
-    content = test_integration_path.read_text()
-    assert "@pytest.mark.integration" in content, (
-        "Expected test_integration.py to have at least one @pytest.mark.integration test"
-    )
+    spec = importlib.util.spec_from_file_location("test_integration", test_integration_path)
+    mod = importlib.util.module_from_spec(spec)
+    # Loading the module exercises all top-level imports.
+    spec.loader.exec_module(mod)
+    assert mod is not None
