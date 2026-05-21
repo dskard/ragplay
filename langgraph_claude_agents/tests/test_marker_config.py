@@ -35,10 +35,15 @@ def test_integration_tests_are_collected_by_marker():
         text=True,
         cwd=project_root,
     )
-    collected = result.stdout + result.stderr
-    assert "test_integration" in collected, (
+    # A non-zero returncode means a collection error or no tests collected — both are failures.
+    assert result.returncode == 0, (
+        f"pytest -m integration exited with code {result.returncode}. "
+        f"Output: {result.stdout + result.stderr}"
+    )
+    # "test_integration.py::" only appears in collected item lines, not in error messages.
+    assert "test_integration.py::" in result.stdout, (
         "Expected pytest -m integration to collect at least one test from test_integration.py. "
-        f"Output was: {collected}"
+        f"Output was: {result.stdout}"
     )
 
 
