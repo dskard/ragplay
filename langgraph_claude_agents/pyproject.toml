@@ -28,3 +28,6 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 asyncio_mode = "auto"
+markers = [
+    "integration: mark test as an integration test — covers tests that require a live LLM API and tests that exercise the full node→run_agent→query integration path with query patched",
+]
