@@ -45,3 +45,19 @@ async def test_run_agent_returns_result_field_from_valid_result_message():
         result = await agent.run_agent("prompt", [])
 
     assert result == "expected answer"
+
+
+@pytest.mark.integration
+async def test_run_agent_returns_empty_string_when_query_yields_no_result_message():
+    # Scenario: query yields messages but none are ResultMessage instances.
+    # Function(s): run_agent
+    # Verifies that run_agent returns "" when no ResultMessage is encountered.
+    async def fake_query(**kwargs):
+        # Yield nothing — exhausted generator with no messages.
+        return
+        yield  # make this an async generator
+
+    with patch("langgraph_claude_agents.agent.query", new=fake_query):
+        result = await agent.run_agent("prompt", [])
+
+    assert result == ""
