@@ -1,5 +1,9 @@
 # Integration test scaffold for langgraph_claude_agents.
-# Tests marked @pytest.mark.integration require external services (LLM API).
+# Tests marked @pytest.mark.integration cover two categories:
+#   1. Tests that require a live LLM API (real external service calls).
+#   2. Tests that exercise the full node→run_agent→query integration path
+#      with query patched — no live network calls needed, but kept under
+#      this marker so all integration-layer tests run together.
 # Run with: pytest -m integration
 # Skip with: pytest -m "not integration"
 import json
