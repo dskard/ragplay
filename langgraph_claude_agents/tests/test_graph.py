@@ -193,6 +193,15 @@ async def test_verify_ac_all_covered_routes_to_full_test():
     assert not result.get("error")
 
 
+def test_module_level_graph_has_no_checkpointer():
+    # Scenario: the module-level `graph` singleton is compiled without a
+    # checkpointer so callers that do not need persistence can import it
+    # directly without setting up any saver.
+    # Functions tested: module-level `graph` object (compiled via _make_graph)
+    from langgraph_claude_agents.graph import graph as module_graph
+    assert module_graph.checkpointer is None
+
+
 async def test_verify_ac_uncovered_loops_back_to_tdd_behavior():
     async with build_graph(db=":memory:") as graph:
         behaviors_json = json.dumps(["behavior one"])

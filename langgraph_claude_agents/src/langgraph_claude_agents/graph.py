@@ -89,4 +89,4 @@ async def build_graph(
         yield _make_graph(checkpointer)
 
 
-graph = _make_graph(MemorySaver())
+graph = _make_graph(None)
