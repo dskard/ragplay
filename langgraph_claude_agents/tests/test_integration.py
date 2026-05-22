@@ -15,7 +15,7 @@ import pytest
 from claude_agent_sdk.types import ResultMessage
 from langgraph_claude_agents import agent, nodes
 from langgraph_claude_agents.agent import run_agent
-from langgraph_claude_agents.graph import graph
+from langgraph_claude_agents.graph import build_graph
 from langgraph_claude_agents.nodes import setup
 
 
@@ -273,7 +273,7 @@ async def test_tdd_behavior_sets_error_when_query_yields_no_result_message():
 async def test_graph_end_to_end_all_nodes_in_sequence():
     # Scenario: all six run_agent nodes execute in order with a stubbed query that
     #   returns a distinct ResultMessage per call; teardown follows with no agent call.
-    # Function(s): graph.ainvoke (module-level graph backed by MemorySaver)
+    # Function(s): build_graph (in-memory SQLite checkpointer) -> ainvoke
     # Verifies the final State has status=="done" with all expected fields populated
     # when the behavior list contains exactly one item so the TDD cycle fires once.
 
@@ -307,13 +307,14 @@ async def test_graph_end_to_end_all_nodes_in_sequence():
         "model": None,
     }
 
-    # Use a unique thread ID each run to prevent MemorySaver checkpoint contamination.
+    # Use a unique thread ID each run to prevent checkpoint contamination.
     thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
 
     fake_query, call_count = make_sequential_query(*responses)
     with patch("langgraph_claude_agents.agent.query", new=fake_query):
-        result = await graph.ainvoke(initial_state, config=config)
+        async with build_graph(db=":memory:") as g:
+            result = await g.ainvoke(initial_state, config=config)
 
     # Verify all six nodes actually fired — catches silent node-skipping regressions.
     assert call_count[0] == len(responses)
