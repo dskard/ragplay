@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 from langgraph.graph import StateGraph, START, END
@@ -84,6 +85,11 @@ def _make_graph(checkpointer) -> CompiledStateGraph:
 async def build_graph(
     db: str = ".langgraph_checkpoints.db",
 ) -> AsyncIterator[CompiledStateGraph]:
+    # Create parent directories when db is a file path, not an in-memory DSN.
+    if db != ":memory:":
+        parent = os.path.dirname(db)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
     async with AsyncSqliteSaver.from_conn_string(db) as checkpointer:
         yield _make_graph(checkpointer)
 

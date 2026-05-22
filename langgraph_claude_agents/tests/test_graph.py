@@ -249,3 +249,13 @@ async def test_verify_ac_uncovered_loops_back_to_tdd_behavior():
         f"expected {len(side_effects)} run_agent calls (loop-back to tdd_behavior), "
         f"got {mock_run.call_count}"
     )
+
+
+async def test_build_graph_creates_parent_directories(tmp_path):
+    # Scenario: build_graph() is called with a db path whose parent directory
+    # does not yet exist; build_graph() should create the missing directories
+    # automatically so callers do not have to pre-create them.
+    # Functions tested: build_graph
+    db = str(tmp_path / "nested" / "subdir" / "checkpoints.db")
+    async with build_graph(db=db) as graph:
+        assert graph is not None
