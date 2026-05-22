@@ -202,6 +202,16 @@ def test_module_level_graph_has_no_checkpointer():
     assert module_graph.checkpointer is None
 
 
+def test_memory_saver_not_imported_in_graph():
+    # Scenario: MemorySaver should not be imported in graph.py since it is
+    # unused - only AsyncSqliteSaver is used for persistence.
+    # Functions tested: graph module imports
+    import langgraph_claude_agents.graph as graph_module
+    assert not hasattr(graph_module, "MemorySaver"), (
+        "MemorySaver should not be imported in graph.py"
+    )
+
+
 async def test_verify_ac_uncovered_loops_back_to_tdd_behavior():
     async with build_graph(db=":memory:") as graph:
         behaviors_json = json.dumps(["behavior one"])
