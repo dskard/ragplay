@@ -193,6 +193,25 @@ async def test_verify_ac_all_covered_routes_to_full_test():
     assert not result.get("error")
 
 
+def test_module_level_graph_has_no_checkpointer():
+    # Scenario: the module-level `graph` singleton is compiled without a
+    # checkpointer so callers that do not need persistence can import it
+    # directly without setting up any saver.
+    # Functions tested: module-level `graph` object (compiled via _make_graph)
+    from langgraph_claude_agents.graph import graph as module_graph
+    assert module_graph.checkpointer is None
+
+
+def test_memory_saver_not_imported_in_graph():
+    # Scenario: MemorySaver should not be imported in graph.py since it is
+    # unused - only AsyncSqliteSaver is used for persistence.
+    # Functions tested: graph module imports
+    import langgraph_claude_agents.graph as graph_module
+    assert not hasattr(graph_module, "MemorySaver"), (
+        "MemorySaver should not be imported in graph.py"
+    )
+
+
 async def test_verify_ac_uncovered_loops_back_to_tdd_behavior():
     async with build_graph(db=":memory:") as graph:
         behaviors_json = json.dumps(["behavior one"])
@@ -230,3 +249,13 @@ async def test_verify_ac_uncovered_loops_back_to_tdd_behavior():
         f"expected {len(side_effects)} run_agent calls (loop-back to tdd_behavior), "
         f"got {mock_run.call_count}"
     )
+
+
+async def test_build_graph_creates_parent_directories(tmp_path):
+    # Scenario: build_graph() is called with a db path whose parent directory
+    # does not yet exist; build_graph() should create the missing directories
+    # automatically so callers do not have to pre-create them.
+    # Functions tested: build_graph
+    db = str(tmp_path / "nested" / "subdir" / "checkpoints.db")
+    async with build_graph(db=db) as graph:
+        assert graph is not None
